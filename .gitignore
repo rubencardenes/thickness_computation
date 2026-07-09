@@ -31,3 +31,5 @@ core
 
 # macOS
 .DS_Store
+
+.vscode
