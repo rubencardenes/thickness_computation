@@ -1,0 +1,33 @@
+# Build artifacts
+build/
+*.o
+*.dSYM/
+
+# Executables
+thickness2D
+thickness2D_knee
+thickness3D
+laplace2D
+laplace3D
+poisson2D
+compute_boundary2D
+compute_boundary_knee3D
+compute_boundary_cortex3D
+generar_phantom3d_elipsoid
+
+# Program outputs (in the project root; example inputs under data/ are kept)
+/*.flt
+/*.volf
+/*.vols
+/*.png
+core
+
+# Debug artifacts written by -d / debug modes
+/input_modificado.chr
+/domain_anillo_modificado.chr
+/laplacefile.flt
+/gradientXnew.flt
+/gradientYnew.flt
+
+# macOS
+.DS_Store
