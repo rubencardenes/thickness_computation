@@ -104,26 +104,40 @@ Output: if the output filename ends in ".png", a PNG image of the thickness
 --streamlines show only the streamlines in the output file (only for testing)
 
 ## Examples 2D:
+Each example below uses `-s` (bidirectional sum); the three images per example
+show the same run's output with `-c 0` (gray), `-c 1` (red-blue), and `-c 2`
+(random-banded).
+
 synthetic non uniform ring
 ```sh
 ./thickness2D -n 20 -i 100 -c 2 -s -m --hx 0.5 --hy 0.5 --lw 40 --lc 98 data/domain_anillo_256_1.png output_thickness_2d.png
 ```
+<img src="images/thickness2d_ring1_gray.png" width="200"> <img src="images/thickness2d_ring1_color.png" width="200"> <img src="images/thickness2d_ring1_random.png" width="200">
+
 synthetic non uniform ring with a high saliency, colored red-blue
 ```sh
 ./thickness2D -n 20 -i 100 -c 2 -s -m --hx 0.5 --hy 0.5 --lw 40 --lc 98 data/domain_anillo_256_2.png output_thickness_2d.png
 ```
+<img src="images/thickness2d_ring2_gray.png" width="200"> <img src="images/thickness2d_ring2_color.png" width="200"> <img src="images/thickness2d_ring2_random.png" width="200">
+
 circle inside an ellipse 
 ```sh
 ./thickness2D -n 20 -i 100 -c 2 -s -m --hx 0.5 --hy 0.5 --lw 40 --lc 98 data/domain_elipse.png output_thickness_2d_elipse.png
 ```
+<img src="images/thickness2d_ellipse_gray.png" width="200"> <img src="images/thickness2d_ellipse_color.png" width="200"> <img src="images/thickness2d_ellipse_random.png" width="200">
+
 square inside a square
 ```sh
 ./thickness2D -n 30 -i 200 -c 2 -s -m --hx 0.5 --hy 0.5 --lw 40 --lc 98 data/domain_cuadrado.png output_thickness_cuadrado.png
 ```
+<img src="images/thickness2d_square_gray.png" width="200"> <img src="images/thickness2d_square_color.png" width="200"> <img src="images/thickness2d_square_random.png" width="200">
+
 donut: circle inside a circle
 ```sh
 ./thickness2D  -n 15 -i 100 -c 2 -s -m --hx 0.5 --hy 0.5 --lw 40 --lc 98 data/domain_donut.png output_thickness_2d_donut.png
 ```
+<img src="images/thickness2d_donut_gray.png" width="200"> <img src="images/thickness2d_donut_color.png" width="200"> <img src="images/thickness2d_donut_random.png" width="200">
+
 ------------------------------
 # thickness2D_knee
 
@@ -295,6 +309,8 @@ Output: filename ending in ".png" writes a PNG of the field (grayscale linearly
 ./laplace2D data/domain_anillo_poisson.png output_laplace2D.png 100
 ./laplace2D data/domain_anillo_poisson.png output_laplace2D.flt 100
 ```
+<img src="images/laplace2d.png" width="200">
+
 --------------------------------
 # laplace3D 
 
@@ -335,3 +351,4 @@ Output: filename ending in ".png" writes a grayscale PNG of the field (min..max
 ```sh
 ./poisson2D data/domain_anillo_poisson.png output_poisson.png 200
 ```
+<img src="images/poisson2d.png" width="200">
