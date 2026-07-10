@@ -42,9 +42,7 @@ struct nodeDataNew {
   int slice;
 };
 
-struct nodeDataNew prototypeNodeData[MAXPATTERNS];
-
-int numelembucket[NUM_BUCKETS];
+static int numelembucket[NUM_BUCKETS];
 
 float distance3d(int x1,int y1,int z1, int x2,int y2,int z2) {
   return sqrt ((x1-x2) * (x1-x2) + (y1-y2) * (y1-y2) + (z1-z2) * (z1-z2));

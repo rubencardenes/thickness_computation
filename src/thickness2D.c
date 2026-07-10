@@ -11,7 +11,7 @@
 
 #define PI 3.1415927
 
-int numelembucket[NUM_BUCKETS];
+static int numelembucket[NUM_BUCKETS];
 extern int numrechazos;
 extern int numasignaciones;
 extern int asignacionesraras;

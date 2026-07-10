@@ -34,8 +34,6 @@ struct nodeDataNew {
   int slice;
 };
 
-struct nodeDataNew prototypeNodeData[MAXPATTERNS];
-
 int thickness3DYezzi(unsigned char* prototypes,int max1, int max2, int max3, float *maps, float*** laplacefield,float*** gradientx, float*** gradienty, float*** gradientz, int num_it,float hx, float hy, float hz);
 int thickness3DYezzi_reverse(unsigned char* prototypes,int max1, int max2, int max3, float *maps, float*** laplacefield,float*** gradientx, float*** gradienty, float*** gradientz, int num_it, float hx, float hy, float hz);
 float** DToptimo(char* prototypes,int max1, int max2, int K, float** maps, int tipo_mapa);
