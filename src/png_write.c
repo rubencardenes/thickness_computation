@@ -114,13 +114,26 @@ int write_png_from_float(const char *filename, const float *data,
     if (color_mode == COLOR_RANDOM) get_random_lut(lut);
     else                            get_redblue_lut(lut);  /* default red-blue */
     for (i = 0; i < n; i++) {
-      unsigned char v = norm[i];
-      if (v == 0) {                 /* background stays black */
+      int idx, background;
+      if (color_mode == COLOR_RANDOM) {
+        /* Discrete banding: each integer value of the map gets one solid color
+           (value in [0,1) -> color 0, [1,2) -> color 1, ...), so a band spans a
+           whole unit instead of changing color at every normalized step. */
+        float fv = data[i];
+        background = (!isfinite(fv) || fv <= 0.0f);
+        idx = (int) fv;                 /* floor, since fv > 0 here */
+        if (idx > 255) idx = 255;
+      } else {
+        /* red-blue: continuous gradient through the normalized value. */
+        idx = norm[i];
+        background = (idx == 0);
+      }
+      if (background) {                 /* background stays black */
         rgb[3*i] = rgb[3*i+1] = rgb[3*i+2] = 0;
       } else {
-        rgb[3*i]   = lut[0][v];
-        rgb[3*i+1] = lut[1][v];
-        rgb[3*i+2] = lut[2][v];
+        rgb[3*i]   = lut[0][idx];
+        rgb[3*i+1] = lut[1][idx];
+        rgb[3*i+2] = lut[2][idx];
       }
     }
     ok = stbi_write_png(filename, width, height, 3, rgb, width * 3);
@@ -133,6 +146,47 @@ int write_png_from_float(const char *filename, const float *data,
     return 1;
   }
   return 0;
+}
+
+int print_domain_values(const unsigned char *data, int n, unsigned char present[256]) {
+  int i, count = 0;
+  memset(present, 0, 256);
+  for (i = 0; i < n; i++) present[data[i]] = 1;
+  printf("Domain values present:");
+  for (i = 0; i < 256; i++) {
+    if (present[i]) { printf(" %d", i); count++; }
+  }
+  printf("\n");
+  fflush(stdout);  /* so these values appear before any stderr error that follows */
+  return count;
+}
+
+int print_domain_values_ushort(const unsigned short *data, int n, unsigned char present[256]) {
+  int i, v, count = 0;
+  unsigned char *seen = (unsigned char *) calloc(65536, 1);
+  memset(present, 0, 256);
+  if (!seen) return 0;
+  for (i = 0; i < n; i++) seen[data[i]] = 1;
+  printf("Domain values present:");
+  for (v = 0; v < 65536; v++) {
+    if (seen[v]) {
+      printf(" %d", v);
+      count++;
+      if (v < 256) present[v] = 1;
+    }
+  }
+  printf("\n");
+  fflush(stdout);
+  free(seen);
+  return count;
+}
+
+int require_label(const unsigned char present[256], int value, const char *optname) {
+  if (value < 0 || value > 255 || !present[value]) {
+    fprintf(stderr, "Error: %s value %d is not present in the domain.\n", optname, value);
+    return 0;
+  }
+  return 1;
 }
 
 int write_float_output(const char *filename, const float *data,

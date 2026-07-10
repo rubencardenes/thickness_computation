@@ -204,7 +204,27 @@ int main(int argc, char* argv[]) {
   max1 = height;
   printf("Input %s: %d rows x %d cols\n", inputfile, max1, max2);
 
+  /* Report the distinct label values in the domain and require that the given
+     --lw and --lc are actually present, so a wrong label fails loudly instead
+     of silently producing an empty result. */
+  {
+    unsigned char present[256];
+    print_domain_values(input, max1*max2, present);
+    if (!require_label(present, label_wm, "--lw") ||
+        !require_label(present, label_cortex, "--lc")) {
+      free(input);
+      exit(1);
+    }
+  }
+
   compute_boundary_cortex2D(input,max1,max2, label_wm, label_cortex);
+
+  /* compute_boundary_cortex2D used the input --lw/--lc labels to detect the
+     boundaries and then normalized the domain: the band is now labeled 2 (the
+     interior 255, the inner boundary 1, the outer boundary 0). From here on the
+     band is identified by that fixed label 2, regardless of the input --lc, so
+     --lw/--lc may take any value present in the image. */
+  label_cortex = 2;
 
   laplacefield  = (float**)malloc(sizeof(float*)*max1);
   for (i=0;i<max1;i++) {
@@ -320,6 +340,13 @@ int main(int argc, char* argv[]) {
   if (streamlines == 0 ) {
     printf("Writing ouput %s:\n",outputfile);
     write_float_output(outputfile, maps, max2, max1, 1, color_mode);
+  }
+
+  if (compute_mean == 1) {
+    int npoints;
+    float sigma, mean;
+    mean = compute_mean_thickness2D(input, maps, label_cortex, max1, max2, &npoints, &sigma);
+    printf("Mean thickness = %f std = %f (over %d band pixels)\n", mean, sigma, npoints);
   }
 
   free(laplacefield);

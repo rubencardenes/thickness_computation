@@ -39,3 +39,4 @@ struct nodeDataNew prototypeNodeData[MAXPATTERNS];
 int thickness2DYezzi(unsigned char* prototypes,int max1, int max2, float *maps, float** laplacefield,float** gradientx, float** gradienty, int num_it, float hx, float hy, unsigned char label_cortex,int debug);
 int thickness2DYezzi_reverse(unsigned char* prototypes,int max1, int max2, float *maps, float** laplacefield,float** gradientx, float** gradienty, int num_it, float hx, float hy, unsigned char label_cortex, int debug);
 float** DToptimo(char* prototypes,int max1, int max2, int K, float** maps, int tipo_mapa);
+float compute_mean_thickness2D(unsigned char *input, float *maps, int label_cortex, int max1, int max2, int *npoints, float *std);

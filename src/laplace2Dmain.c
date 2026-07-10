@@ -3,7 +3,8 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include <getopt.h>
+#include <unistd.h>   /* getopt, optarg, optind (with a proper prototype) */
+#include "laplace2D.h"
 #include "png_write.h"
 
 int main(int argc,char* argv[]) {
@@ -50,25 +51,57 @@ int main(int argc,char* argv[]) {
   max1 = height;
   printf("Input %s: %d rows x %d cols\n", inputfile, max1, max2);
 
+  /* Report the distinct label values in the domain. laplace2D has no --lw/--lc
+     to validate; it only needs a non-zero region over a zero background. */
+  {
+    unsigned char present[256];
+    print_domain_values(input, max1*max2, present);
+  }
+
   output = (float**)malloc(sizeof(float*)*max1);
   for (i=0;i<max1;i++) {
     output[i] = (float*)malloc(sizeof(float)*max2);
   }
   
-  printf("Entering in EdgeDetect\n");
-  if ( EdgeDetect(input, max1, max2) == 1 ) {
-    printf("Error in EdgeDetect\n");
-  } 
-  
-  printf("Relabeling\n");
-  if ( relabel(input,max1*max2,0,2) != 0) {
-    printf("Error in Relabel\n");
+  {
+    unsigned char present[256];
+    printf("Entering in EdgeDetect\n");
+    if ( EdgeDetect(input, max1, max2) == 1 ) {
+      printf("Error in EdgeDetect\n");
+    }
+    printf("  after EdgeDetect: "); print_domain_values(input, max1*max2, present);
+
+    /* The Laplace field must be solved inside the domain material (the ring
+       wall), so that region must carry label 2. After EdgeDetect the material
+       interior keeps its original (non-zero) value and the edges are label 1;
+       relabel every non-background, non-edge pixel to 2. RelabelBoundary then
+       splits the two edges into the 0/1 Dirichlet values the solver reads. */
+    printf("Relabeling\n");
+    for (i=0;i<max1*max2;i++) {
+      if (input[i] != 0 && input[i] != 1) input[i] = 2;
+    }
+    printf("  after relabel(material->2): "); print_domain_values(input, max1*max2, present);
+
+    printf("Entering in RelabelBoundary\n");
+    if ( RelabelBoundary(input, max1, max2) == 1 ) {
+      printf("Error in RelabelBoundary\n");
+    }
+    printf("  after RelabelBoundary: "); print_domain_values(input, max1*max2, present);
+
+    /* Report the size of each label class going into the solver. Label 2 is the
+       only region the Laplace solver iterates over (see laplace2D()); every other
+       label is held fixed at its value. If the region you expect to see a smooth
+       field in is not label 2, the solver never touches it. */
+    {
+      long counts[256]; int v;
+      for (v=0;v<256;v++) counts[v]=0;
+      for (i=0;i<max1*max2;i++) counts[input[i]]++;
+      printf("  label sizes going into solver (label:count):");
+      for (v=0;v<256;v++) if (counts[v]) printf(" %d:%ld", v, counts[v]);
+      printf("\n");
+      printf("  --> solver iterates only over label 2: %ld pixels\n", counts[2]);
+    }
   }
-  
-  printf("Entering in RelabelBoundary\n");
-  if ( RelabelBoundary(input, max1, max2) == 1 ) {
-    printf("Error in RelabelBoundary\n");
-  } 
   
   printf("Writing domain domain_anillo_modificado.chr\n");
   fg=fopen("domain_anillo_modificado.chr","w");
@@ -80,8 +113,40 @@ int main(int argc,char* argv[]) {
   }
 
   printf("Entering in laplacian2D\n");
-  if ( laplace2D(input, max1, max2, output, iterations, lambda) == 1 ) {
+  if ( laplace2D(input, max1, max2, output, iterations, lambda, 0) == 1 ) {
     printf("Error in thickness2D\n");
+  }
+
+  /* Output field statistics, split between the solved region (label 2) and the
+     rest. A healthy Laplace solution has a non-degenerate range over the solved
+     region (values spread between the two boundary conditions). A range of ~0
+     there, or 0 solved pixels, means the field is flat and nothing meaningful
+     was computed. */
+  {
+    int r,col; long nsolved=0, nother=0;
+    float smin=0,smax=0,ssum=0, omin=0,omax=0;
+    int sinit=0, oinit=0;
+    for (r=0;r<max1;r++) {
+      for (col=0;col<max2;col++) {
+        float v = output[r][col];
+        if (input[r*max2+col] == 2) {
+          if (!sinit) { smin=smax=v; sinit=1; } else { if (v<smin) smin=v; if (v>smax) smax=v; }
+          ssum += v; nsolved++;
+        } else {
+          if (!oinit) { omin=omax=v; oinit=1; } else { if (v<omin) omin=v; if (v>omax) omax=v; }
+          nother++;
+        }
+      }
+    }
+    printf("Field stats: solved region (label 2): %ld px, min=%.4f max=%.4f mean=%.4f (range=%.4f)\n",
+           nsolved, smin, smax, nsolved?ssum/nsolved:0.0f, smax-smin);
+    printf("             everything else: %ld px, min=%.4f max=%.4f (held fixed at input labels)\n",
+           nother, omin, omax);
+    if (nsolved == 0) {
+      printf("  WARNING: no pixels labelled 2, so the Laplace solver did nothing.\n");
+    } else if (smax-smin < 1e-6f) {
+      printf("  WARNING: solved field is flat (range ~0); check boundary labels.\n");
+    }
   }
 
   printf("Writing ouput %s:\n",outputfile);
@@ -93,6 +158,17 @@ int main(int argc,char* argv[]) {
     for (r=0;r<max1;r++) {
       for (col=0;col<max2;col++) {
         buf[r*max2+col] = output[r][col];
+      }
+    }
+    /* For the PNG, show only the solved Laplacian field (label 2). The other
+       labels are held at fixed values (0/1 boundaries, 3 background) that would
+       otherwise dominate the min..max normalization and crush the field's range;
+       masking them to NaN makes them render black and excludes them from the
+       normalization, so the field itself is stretched across the full 0..255.
+       The raw .flt output keeps the complete field unchanged. */
+    if (png_has_extension(outputfile)) {
+      for (r=0;r<max1*max2;r++) {
+        if (input[r] != 2) buf[r] = NAN;
       }
     }
     write_float_output(outputfile, buf, max2, max1, 0, color_mode);

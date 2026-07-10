@@ -10,6 +10,7 @@
 #include "thickness3D.h"
 #include "laplace3D.h"
 #include "DToptimo3d.h"
+#include "png_write.h"
 
 int numrechazos = 0;
 int numasignaciones = 0;
@@ -250,17 +251,39 @@ int main(int argc, char* argv[]) {
   }
   
   if (swapbyte == 1) {
-    for (i=0; i < max1*max2*max3; i++) {      
+    for (i=0; i < max1*max2*max3; i++) {
       aux = (unsigned char*)&input_short[i];
-      input_short[i] = ReadGEShort(aux);   
+      input_short[i] = ReadGEShort(aux);
     }
   }
-  
+
+  /* Report the distinct label values in the volume. In cortex mode require the
+     given --lw and --lc to be present, so a wrong label fails loudly instead of
+     silently producing an empty result. In knee mode the boundaries are already
+     encoded in the input, so --lw/--lc are not validated. */
+  {
+    unsigned char present[256];
+    print_domain_values_ushort(input_short, max1*max2*max3, present);
+    if (knee == 0) {
+      if (!require_label(present, label_wm, "--lw") ||
+          !require_label(present, label_cortex, "--lc")) {
+        exit(1);
+      }
+    }
+  }
+
   if (knee == 1) {
     EdgeDetect3D_knee(input, max1, max2, max3);
   } else {
-    compute_boundary_cortex3D(input_short,max1, max2, max3, label_wm, label_cortex);  
+    compute_boundary_cortex3D(input_short,max1, max2, max3, label_wm, label_cortex);
   }
+
+  /* After boundary processing the band is labeled 2 (cortex mode relabels the
+     input --lc to 2; knee mode expects the band to already be 2). The thickness
+     computation uses that fixed label internally, so pin label_cortex to 2 here
+     as well: this keeps the -m mean statistics correct regardless of the input
+     --lw/--lc values. */
+  label_cortex = 2;
 
   for (i=0;i<max1*max2*max3;i++) {
     input[i] = (unsigned char)input_short[i];

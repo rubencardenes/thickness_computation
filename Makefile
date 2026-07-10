@@ -66,17 +66,17 @@ thickness2D: $(SRC)/thickness2Dmain.c $(BUILD)/thickness2D.o $(BUILD)/laplace2D.
 thickness2D_knee: $(SRC)/thickness2Dmain_knee.c $(BUILD)/thickness2D.o $(BUILD)/laplace2D.o $(BUILD)/png_write.o
 	$(CC) $(FLAGS) $(SRC)/thickness2Dmain_knee.c $(BUILD)/laplace2D.o $(BUILD)/thickness2D.o $(BUILD)/png_write.o -lm -o $@
 
-thickness3D: $(SRC)/thickness3Dmain.c $(BUILD)/laplace3D.o $(BUILD)/thickness3D.o $(BUILD)/io.o $(BUILD)/DToptimo3d.o
-	$(CC) $(FLAGS) $(SRC)/thickness3Dmain.c $(BUILD)/laplace3D.o $(BUILD)/thickness3D.o $(BUILD)/io.o $(BUILD)/DToptimo3d.o -lm -o $@
+thickness3D: $(SRC)/thickness3Dmain.c $(BUILD)/laplace3D.o $(BUILD)/thickness3D.o $(BUILD)/io.o $(BUILD)/DToptimo3d.o $(BUILD)/png_write.o
+	$(CC) $(FLAGS) $(SRC)/thickness3Dmain.c $(BUILD)/laplace3D.o $(BUILD)/thickness3D.o $(BUILD)/io.o $(BUILD)/DToptimo3d.o $(BUILD)/png_write.o -lm -o $@
 
 laplace2D: $(SRC)/laplace2Dmain.c $(BUILD)/laplace2D.o $(BUILD)/png_write.o
 	$(CC) $(FLAGS) $(SRC)/laplace2Dmain.c $(BUILD)/laplace2D.o $(BUILD)/png_write.o -lm -o $@
 
-laplace3D: $(SRC)/laplace3Dmain.c $(BUILD)/laplace3D.o
-	$(CC) $(FLAGS) $(SRC)/laplace3Dmain.c $(BUILD)/laplace3D.o -lm -o $@
+laplace3D: $(SRC)/laplace3Dmain.c $(BUILD)/laplace3D.o $(BUILD)/png_write.o
+	$(CC) $(FLAGS) $(SRC)/laplace3Dmain.c $(BUILD)/laplace3D.o $(BUILD)/png_write.o -lm -o $@
 
-poisson2D: $(SRC)/poisson2Dmain.c $(BUILD)/poisson2D.o $(BUILD)/laplace2D.o
-	$(CC) $(FLAGS) $(SRC)/poisson2Dmain.c $(BUILD)/poisson2D.o $(BUILD)/laplace2D.o -lm -o $@
+poisson2D: $(SRC)/poisson2Dmain.c $(BUILD)/poisson2D.o $(BUILD)/laplace2D.o $(BUILD)/png_write.o
+	$(CC) $(FLAGS) $(SRC)/poisson2Dmain.c $(BUILD)/poisson2D.o $(BUILD)/laplace2D.o $(BUILD)/png_write.o -lm -o $@
 
 compute_boundary2D: $(SRC)/compute_boundary2D.c $(BUILD)/io.o $(BUILD)/laplace2D.o
 	$(CC) $(FLAGS) $(SRC)/compute_boundary2D.c $(BUILD)/laplace2D.o $(BUILD)/io.o -lm -o $@

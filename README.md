@@ -29,6 +29,24 @@ boundary to the other. The two boundaries are derived automatically from a
 tissue segmentation: the interior is given by the white-matter label (`--lw`)
 and the band itself by the cortex label (`--lc`).
 
+`thickness2D` expects a raw two-tissue segmentation and builds the band domain
+itself, via `compute_boundary_cortex2D()`, before running the thickness solver:
+1. Any pixel that is not `--lw`, `--lc`, or `0` is relabeled to `0`
+   (background) — the domain is reduced to exactly three values.
+2. `--lw` pixels touching an `--lc` pixel become the **inner boundary**.
+3. Background (`0`) pixels touching an `--lc` pixel become the **outer
+   boundary**.
+4. Everything is then remapped into a fixed, canonical scheme: outer boundary
+   → `0`, inner boundary → `1`, band interior → `2`, everything else
+   (background/white matter) → `255`.
+
+Because that remapping always lands on `2` for the band, `label_cortex` is
+reset to `2` internally right after this step — the original `--lw`/`--lc`
+values only matter for *finding* the boundaries, not for the thickness
+computation that follows, which always operates on the canonical
+0/1/2/255 domain. This is also the input format `thickness2D_knee` expects to
+receive directly (see below).
+
 ## Usage 
 ```
 thickness2D [options] input2D.png output2D.png
@@ -79,7 +97,8 @@ Output: if the output filename ends in ".png", a PNG image of the thickness
 --lw label of the interior (white matter, default 3) 
 --lc label of the band (cortex, default 2)
 -c color output for PNG: 0 grayscale (default), 1 red-blue (thin=red, thick=blue),
-   2 random colors. Only affects PNG output.
+   2 random-banded (each integer thickness value gets one solid color, i.e. a
+   discrete iso-thickness band colormap). Only affects PNG output.
 --hx --hy pixel size parameters (default: 1,1)
 --DT compute thickness using Euclidean DT (then laplacian is not used)
 --streamlines show only the streamlines in the output file (only for testing)
@@ -87,27 +106,23 @@ Output: if the output filename ends in ".png", a PNG image of the thickness
 ## Examples 2D:
 synthetic non uniform ring
 ```sh
-./thickness2D -n 20 -i 100 --hx 1 --hy 1 --lw 3 --lc 2 data/domain_anillo_256.png output_thickness_2d.png
+./thickness2D -n 20 -i 100 -c 2 -s -m --hx 0.5 --hy 0.5 --lw 40 --lc 98 data/domain_anillo_256_1.png output_thickness_2d.png
 ```
 synthetic non uniform ring with a high saliency, colored red-blue
 ```sh
-./thickness2D -n 20 -i 100 -c 1 --hx 1 --hy 1 --lw 3 --lc 2 data/domain_anillo_256_2.png output_thickness_2d.png
-```
-donut: circle inside a circle
-```sh
-./thickness2D  -n 10 -i 100 --hx 1 --hy 1 --lw 3 --lc 2 data/domain_donut.png output_thickness_2d_donut.png
+./thickness2D -n 20 -i 100 -c 2 -s -m --hx 0.5 --hy 0.5 --lw 40 --lc 98 data/domain_anillo_256_2.png output_thickness_2d.png
 ```
 circle inside an ellipse 
 ```sh
-./thickness2D -n 10 -i 100 --hx 1 --hy 1 --lw 3 --lc 2 data/domain_elipse.png output_thickness_2d_elipse.png
+./thickness2D -n 20 -i 100 -c 2 -s -m --hx 0.5 --hy 0.5 --lw 40 --lc 98 data/domain_elipse.png output_thickness_2d_elipse.png
 ```
 square inside a square
 ```sh
-./thickness2D -n 10 -i 200 --hx 1 --hy 1 --lw 3 --lc 2 data/domain_cuadrado.png output_thickness_cuadrado.png
+./thickness2D -n 30 -i 200 -c 2 -s -m --hx 0.5 --hy 0.5 --lw 40 --lc 98 data/domain_cuadrado.png output_thickness_cuadrado.png
 ```
-baby brain
+donut: circle inside a circle
 ```sh
-./thickness2D -n 10 -i 200 --hx 1 --hy 1 --lw 3 --lc 2 $DATA_DIR/baby_brain/segwmgm/A58.png output_thickness.png
+./thickness2D  -n 15 -i 100 -c 2 -s -m --hx 0.5 --hy 0.5 --lw 40 --lc 98 data/domain_donut.png output_thickness_2d_donut.png
 ```
 ------------------------------
 # thickness2D_knee
@@ -116,28 +131,51 @@ Uses the same Laplacian thickness algorithm as `thickness2D`, but for inputs
 whose boundaries are already explicitly labeled instead of being derived from a
 tissue segmentation. `thickness2D` builds the inner/outer boundaries of the
 band itself from the white-matter and cortex labels (via
-`compute_boundary_cortex2D`); `thickness2D_knee` skips that step and expects the
-domain to already encode the two boundaries directly (as produced by
-`compute_boundary2D`), which suits knee-cartilage data where there is no
-white-matter interior from which to infer the boundaries. It uses a mostly
-positional command line and a fixed band label of 2.
+`compute_boundary_cortex2D`); `thickness2D_knee` skips that step entirely and
+runs the Yezzi thickness solver directly on the domain as given, which must
+already be in the canonical form `thickness2D` produces internally: outer
+boundary = `0`, inner boundary = `1`, band = `--lc` (default `2`). This suits
+knee-cartilage data — produced by `compute_boundary2D` — where there is no
+white-matter interior from which to infer the boundaries the way there is for
+the cortex. It shares the same option-based command line as `thickness2D`, but
+`--lw` is accepted only for argument-parsing compatibility and has no effect,
+since no boundary derivation happens.
+
+|                        | `thickness2D`                                   | `thickness2D_knee`                          |
+|------------------------|--------------------------------------------------|----------------------------------------------|
+| Expected input         | Raw tissue segmentation (`--lw`/`--lc` labels)   | Pre-built band domain (0=outer, 1=inner, `--lc`=band) |
+| Boundary derivation    | Computed internally (`compute_boundary_cortex2D`) | Skipped — assumed already present in the PNG |
+| `--lw`                 | Used to find white-matter/cortex adjacency        | Parsed but unused                             |
+| Extra modes            | `-s` (bidirectional sum), `--streamlines`         | None                                          |
 
 ## Usage
+`thickness2D_knee` now uses the same option-based argument parsing as
+`thickness2D` (the old positional `iterations_laplace iterations hx hy reverse
+lambda` arguments are gone).
 ```
-thickness2D_knee [options] domain2D.png output2D.png iterations_laplace iterations hx hy [reverse] [lambda]
+thickness2D_knee [options] input2D.png output2D.png
+              -d (debug mode)
+              -n iterations_thickness (10)
+              -i iterations_laplace (100)
+              -r (reverse)
+              -l lambda (0.5)
               -c color output (0: gray, 1: red-blue, 2: random)
+              --hx hy (1)
+              --hy hx (1)
+              --lc band label (2)
 ```
 Input: 8-bit grayscale PNG; the image dimensions are read from the file (so
-       max1/max2 are no longer passed on the command line).
+       max1/max2 are no longer passed on the command line). The distinct label
+       values are printed, and the band label (--lc, default 2) must be present
+       in the domain or the program errors out. (--lw is accepted for parsing
+       compatibility but not used, since the boundaries are pre-encoded.)
 Output: filename ending in ".png" writes a PNG of the thickness map (grayscale,
         or RGB when -c is 1 or 2; background = black); any other extension writes
         a raw float image, as before.
 
 ## Examples
 ```sh
-./thickness2D_knee $DATA_DIR/knee-images/thickness/010/input.022 $DATA_DIR/knee-images/thickness/010/output2D.png 200 10 0.234375 0.234375 1
-./thickness2D_knee -c 1 data/domain_knee_512.png output_thickness_knee.png 200 10 1 1 0 
-./thickness2D_knee /home/ruben/data/knee-images/thickness/010/input.011 /home/ruben/data/knee-images/thickness/010/output2D.png 200 10 1 1 0 
+./thickness2D_knee -c 2 -i 200 -n 10 --hx 1 --hy 1 -m data/domain_knee_512.png output_thickness_knee.png
 ```
 
 ------------------------------
@@ -202,32 +240,17 @@ Output: volume float file, representing the distances from one boundary to the o
 --DT compute thickness using Euclidean DT (then laplacian is not used)
 
 ## Examples
-```sh
-DATA_DIR=/home/common/data/raw/ms/warfieldr21dtmri/1.2.840.113619.2.136.1762888421.2017.1078752767.808.UID
-./thickness3D_cortex -m -w -n 10 -i 100 --lw 3 --lc 2 --hx 0.9375 --hy 0.9375 --hz 1.3 $DATA_DIR/brain_124/Output $DATA_DIR/brain_124/Output_thickness.volf 256 256 124 
-
-DATA_DIR=/projects/hpc/active/fernandes/als-neonate-segmented/07002_FG/30th_week/zillesgi/segwmgm
-./thickness3D_cortex -m -w -n 10 -i 100 --lw 3 --lc 2 --hx 0.703125 --hy 0.703125 --hz 1.5 $DATA_DIR/baby_brain/segwmgm/I $DATA_DIR/baby_brain/segwmgm/Thickness_zill.volf 256 256 124 
-
-DATA_DIR=/projects/hpc/active/reith/pvl/NMR032_scott_johanna/measure/cerebrum_and_white_matter
-./thickness3D_cortex -m -w -n 10 -i 200 --lw 3 --lc 2 --hx 0.703125 --hy 0.703125 --hz 1.5 $DATA_DIR/baby_brain/pvl/cerebrum_and_white_matter $DATA_DIR/baby_brain/pvl/Thickness.volf 256 256 110
-```
-
-Datos brainweb:
-```sh
-./thickness3D -m -n 20 -i 500 --lw 3 --lc 2 ~/datos/datos_meri/knn/out_rf0n3.vols out.volf 187 161 161
-```
 Caja
 ```sh
 ./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 data/input_caja3d.vols Thickness.volf 80 80 80
 ```
 Elipsoid
 ```sh
-./thickness3D -m -n 10 -i 100 --lw 3 --lc 2 data/phantom_elipsoid.vols Thickness.volf 80 80 80
+./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 data/phantom_elipsoid.vols Thickness.volf 80 80 80
 ```
 Sphere
 ```sh
-./thickness3D -m -n 10 -i 100 --lw 3 --lc 2 data/phantom_sphere.vols Thickness.volf 80 80 80
+./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 data/phantom_sphere.vols Thickness.volf 80 80 80
 ```
 --------------------------------
 # thickness3D_knee 
@@ -245,11 +268,6 @@ identical.
 Input: volume unsigned char file, where the interior boundary of the knee cartilage is 1, the exterior is 0, and the cartilage has label 128, and the rest has label 255  
 Output: volume float file, representing the distances from one boundary to the other according to a metric defined by the laplacian field
 ```
-
-# Examples
-```sh
-./thickness3D -n 10 -i 100 -k $DATA_DIR/knee-images/thickness/010/output.vol $DATA_DIR/knee-images/thickness/010/output_thickness3D.volf 512 512 70 
-```
 --------------------------------
 # laplace2D 
 
@@ -264,7 +282,7 @@ the input domain.
 laplace2D [-c color] input.png output.png iterations [lambda]
               -c color output (0: gray, 1: red-blue, 2: random)
 ```
-The domain should be a non-zero region (e.g. label 2) over a zero background,
+The domain should be a non-zero region (e.g. label 100) over a zero background,
 so the interior boundary can be detected. The image dimensions are read from the
 input PNG.
 
@@ -290,80 +308,7 @@ laplace3D max1 max2 max3 input-prefix output3d-prefix iterations [lambda]
 
 ## Example 3D
 ```sh
-./laplace3D 80 80 80 ../phantoms/thickness/domain_anillo_3d.vol output_laplace3D.volf 50
-```
---------------------------------
-# compute_boundary2D 
-
-Extracts the inner and outer boundaries of a segmented 2D structure and writes a
-domain image ready for the thickness tools. From a segmented image and its
-original grayscale image, it isolates the structure of interest (selected by a
-label and an intensity threshold) and labels the interior boundary as 1, the
-exterior as 0, the interior region as 128 and the rest as 255. It is aimed at
-knee-cartilage data and produces the kind of input `thickness2D_knee` expects.
-
-## Usage
-```
-compute_boundary2D max1 max2 segmented_file.ush original_file.mri output2D.ush threshold
-```
-
-## Example: (knee data)
-```sh
-./compute_boundary2D 512 512 $DATA_DIR/knee-images/welsch/010/seg5/seg5-010.021 $DATA_DIR/knee-images/010/I_swap.021 ~/data/knee-images/thickness/010/output2D.chr 14 250 1
-```
-
---------------------------------
-# compute_boundary_knee3D 
-
-3D boundary extractor for knee cartilage. From a segmented volume series and the
-original grayscale series, it isolates the cartilage (by label and intensity
-threshold) and produces the domain volume the thickness tools expect: interior
-cartilage surface = 1, exterior = 0, interior = 128, outside = 255. This is the
-volume you feed to `thickness3D -k`.
-
-## Usage 
-```
-compute_boundary_knee3D [options] segmented_prefix original_prefix output3D.vols nrows ncols nslices
-              -d (debug mode)
-              -w (swapbytes) 
-              -l label
-              -t threshold 
-
-   Input : segmented and original file series (unsigned short). We have to provide the label of the cartilage segmented to compute the boundaries on it.
-   Output: volume unsigned char file, donde la superficie interior del cartilago tiene valor 1, la exterior tiene valor 0, lo de dentro tiene valor 128, y lo de fuera valor 255
-```
-
-## Example:
-```sh
-./compute_boundary_knee3D -l 14 -t 250 -w $DATA_DIR/knee-images/thickness/010/try5/input $DATA_DIR/knee-images/010/I ~/data/knee-images/thickness/010/output.vol 512 512 70
-```
-
---------------------------------
-# compute_boundary_cortex3D 
-
-3D boundary extractor for the cerebral cortex. From a segmentation with a cortex
-label and a white-matter label, it produces the domain volume with the inner
-cortex surface = 1, the outer = 0, the interior = 128 and the rest = 255. It
-plays the same role as `compute_boundary_knee3D` but is driven by tissue labels
-instead of an intensity threshold. Note that `thickness3D` performs this same
-boundary computation internally, so this standalone tool is mainly for
-inspecting or reusing the boundary volume.
-
-## Usage 
-```
-compute_boundary_cortex3D [options] input_prefix output3D.vols nrows ncols nslices
-              -d (debug mode)
-              -w (swapbytes) 
-              -l label_wm 
-              -c label_cortex 
-
-   Input: serie de ficheros (unsigned short) que definen la segmentacion del cortex con etiqueta label_cortex, la segmentacion de la materia blanca con eqiueta label_wm, y el resto.   
-   Output: Fichero de volumen (unsigned short) tipo vols, donde la superficie interior del cortex tiene valor 1, la exterior tiene valor 0, lo de dentro tiene valor 128, y lo de fuera valor 255
-```
-
-## Example
-```sh
-./compute_boundary_cortex3D -l 3 -c 2 -w $DATA_DIR/brain_124/Output $DATA_DIR/brain_124/Output_b.vol 256 256 124
+./laplace3D 80 80 80 data/domain_anillo_3d.vol output_laplace3D.volf 100
 ```
 
 --------------------------------
@@ -371,16 +316,22 @@ compute_boundary_cortex3D [options] input_prefix output3D.vols nrows ncols nslic
 
 Solves the 2D Poisson equation over a domain (a variant of the Laplace solver
 that includes a source term). This is experimental; the interesting output is
-the map of local minima of the resulting field (`min_local.chr`).
+the map of local minima of the resulting field, written as `max_local.png`
+(grayscale, 0-255 normalized: background/non-minima pixels are 0/black, and
+local-minima values are linearly scaled so the largest maps to 255 — since the
+map is sparse, this makes the minima actually visible).
 
 ## Usage
 ```sh
-poisson2D max1 max2 input.chr output.pnm iterations [lambda]
+poisson2D input.png output.png|output.flt iterations [lambda]
 ```
+Input: 8-bit grayscale PNG; the image dimensions are read from the file (so
+       max1/max2 are no longer passed on the command line).
+Output: filename ending in ".png" writes a grayscale PNG of the field (min..max
+        normalized to 0-255); any other extension writes a raw float image.
+        Also always writes `max_local.png`, the local-minima map.
 
 ## Example:
 ```sh
-./poisson2D 256 256 domain_anillo_poisson.chr output_poisson.flt 100 
+./poisson2D data/domain_anillo_poisson.png output_poisson.png 200
 ```
-
-Lo interesante son los minimos locales (min_local.chr)

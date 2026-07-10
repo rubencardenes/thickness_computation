@@ -19,7 +19,7 @@ int poisson2D(unsigned char* input,int max1, int max2, float** output, int itera
   /* Initialize domain, inside=0, and boundaries values*/
   for (i=0;i<max1;i++) {
     for (j=0;j<max2;j++) {
-      if (input[sum] == cortex_label) {
+      if (input[sum] != 0) {
 	output[i][j] = 0;
       } else {
 	if (input[sum] == 255) {
@@ -41,7 +41,7 @@ int poisson2D(unsigned char* input,int max1, int max2, float** output, int itera
     sum = 0;
     for (i=0;i<max1;i++) {
       for (j=0;j<max2;j++) {
-	if (input[sum] == cortex_label 
+	if (input[sum] != 0
 	    && i != 0 && i != max1-1 && j!=0 && j != max2-1) {
 	  output[i][j] = 0.25 *(output[i-1][j] + output[i+1][j] + output[i][j-1] + output[i][j+1] - h*h);
 	  /*output[i][j] = output[i][j]+(lambda+1)*(0.25 *(output[i-1][j] + output[i+1][j] + output[i][j-1] + output[i][j+1]) - output[i][j]);*/

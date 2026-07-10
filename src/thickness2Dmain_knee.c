@@ -14,49 +14,101 @@ int numasignaciones = 0;
 
 int main(int argc, char* argv[]) {
   unsigned char *input;
-  unsigned char label = 2;
   float *maps;
   float **laplacefield,**gradientx,**gradienty;
   float lambda = 0.5, hx = 1,hy = 1;
-  int i,col,row,iterations;
+  int i,col,row,c,option_index,num_it = 10,iterations_laplace = 100, suma = 0, swapbyte = 0;
   int max1 = 256;
   int max2 = 256;
   int max3 = 1;
-  int reverse = 0;
-  int num_it;
-  int debug = 1;
+  int reverse = 0,compute_mean = 0, label_cortex = 2, label_wm = 3;
+  int debug = 0, streamlines = 0;
+  int thickness_DT = 0;
   int color_mode = COLOR_GRAY;
-  int width, height, c, nargs;
+  int width, height;
   FILE *fp,*fg;
   struct timeval startinit;
   struct timeval endinit;
   struct timeval endtotal;
-  char *inputfile,*outputfile,*laplacefile;
+  char inputfile[200],outputfile[200],*laplacefile;
 
-  while ((c = getopt(argc, argv, "dc:")) != -1) {
+  /* Same argument parsing as thickness2D. thickness2D_knee expects the domain
+     to already encode the boundaries, so it does not derive them from --lw/--lc;
+     the band whose thickness is measured is the one labeled --lc (default 2). */
+  while (1) {
+    static struct option long_options[] = {
+      {"hx", 1, 0, 0},
+      {"hy", 1, 0, 0},
+      {"lw", 1, 0, 0},
+      {"lc", 1, 0, 0},
+      {"DT", 0, 0, 0},
+      {"streamlines", 0, 0, 0},
+      {0, 0, 0, 0}
+    };
+
+    c = getopt_long (argc, argv, "dn:i:wrsl:mc:",long_options, &option_index);
+
+    if (c == -1) {
+      break;
+    }
+
     switch (c) {
+    case 0:
+      if (strcmp(long_options[option_index].name,"hx") == 0) hx = atof(optarg);
+      if (strcmp(long_options[option_index].name,"hy") == 0) hy = atof(optarg);
+      if (strcmp(long_options[option_index].name,"lc") == 0) label_cortex = atoi(optarg);
+      if (strcmp(long_options[option_index].name,"lw") == 0) label_wm = atoi(optarg);
+      if (strcmp(long_options[option_index].name,"DT") == 0) thickness_DT = 1;
+      if (strcmp(long_options[option_index].name,"streamlines") == 0) streamlines = 1;
+      break;
     case 'd': debug = 1; break;
+    case 'n': num_it = atoi(optarg); break;
+    case 'i': iterations_laplace = atoi(optarg); break;
+    case 'w': swapbyte = 1; break;
+    case 'r': reverse = 1; break;
+    case 's': suma = 1; break;
+    case 'l': lambda = atof(optarg); break;
+    case 'm': compute_mean = 1; break;
     case 'c': color_mode = atoi(optarg); break;
-    default: break;
+    case '?':
+      printf("Author: Ruben Cardenes, April 2004\n");
+      printf("Usage: thickness2D_knee [options] input2D.png output2D.png\n");
+      printf("              -d (debug mode)\n");
+      printf("              -n iterations_thickness (10)\n");
+      printf("              -i iterations_laplace (100)\n");
+      printf("              -r (reverse) \n");
+      printf("              -l lambda (0.5)\n");
+      printf("              -c color output (0: gray, 1: red-blue, 2: random)\n");
+      printf("              --hx hy (1) \n");
+      printf("              --hy hx (1) \n");
+      printf("              --lc band label (2)\n");
+      return 1;
+      break;
+    default:
+      printf ("?? getopt returned character code 0%o ??\n", c);
     }
   }
 
-  nargs = argc - optind;
-  if (nargs < 6 || nargs > 8) {
-    printf("Usage: thickness2D_knee [options] domain2D.png output2D.png iterations_laplace iterations hx hy [reverse] [lambda]\n");
-    printf("       (image dimensions are read from the input PNG)\n");
-    printf("       -c color output (0: gray, 1: red-blue, 2: random)\n");
+  if ((argc - optind) != 2) {
+    printf ("Incorrect number of arguments: ");
+    printf("Usage: thickness2D_knee [options] input2D.png output2D.png \n");
+    printf("              (image dimensions are read from the input PNG)\n");
+    printf("              -d (debug mode)\n");
+    printf("              -n iterations_thickness (10)\n");
+    printf("              -i iterations_laplace (100)\n");
+    printf("              -r (reverse) \n");
+    printf("              -l lambda (0.5)\n");
+    printf("              -c color output (0: gray, 1: red-blue, 2: random)\n");
+    printf("              --hx hy (1) \n");
+    printf("              --hy hx (1) \n");
+    printf("              --lc band label (2)\n");
     return 1;
+  } else {
+    if (sscanf(argv[optind++], "%s", inputfile) == 0)
+      printf ("Error parsing argument \n");
+    if (sscanf(argv[optind++], "%s", outputfile) == 0)
+      printf ("Error parsing argument \n");
   }
-
-  inputfile  = argv[optind + 0];
-  outputfile = argv[optind + 1];
-  iterations = atoi(argv[optind + 2]);
-  num_it     = atoi(argv[optind + 3]);
-  hx = atof(argv[optind + 4]);
-  hy = atof(argv[optind + 5]);
-  if (nargs >= 7) reverse = atoi(argv[optind + 6]);
-  if (nargs == 8) lambda = atof(argv[optind + 7]);
 
   gettimeofday(&startinit,NULL);
 
@@ -69,13 +121,24 @@ int main(int argc, char* argv[]) {
   max1 = height;
   printf("Input %s: %d rows x %d cols\n", inputfile, max1, max2);
 
+  /* Report the distinct label values and require the band label (--lc) to be
+     present in the domain. */
+  {
+    unsigned char present[256];
+    print_domain_values(input, max1*max2, present);
+    if (!require_label(present, label_cortex, "--lc")) {
+      free(input);
+      exit(1);
+    }
+  }
+
   laplacefield  = (float**)malloc(sizeof(float*)*max1);
   for (i=0;i<max1;i++) {
     laplacefield[i] = (float*)malloc(sizeof(float)*max2);
   }
 
   printf("Entering in laplacian2D\n");
-  if ( laplace2D(input, max1, max2, laplacefield, iterations, lambda, reverse) == 1 ) {
+  if ( laplace2D(input, max1, max2, laplacefield, iterations_laplace, lambda, reverse) == 1 ) {
     printf("Error in thickness2D\n");
   }
 
@@ -142,11 +205,11 @@ int main(int argc, char* argv[]) {
   printf("Entering in thickness2D\n");
   gettimeofday(&endinit,NULL);
   if (reverse == 0) {
-    if ( thickness2DYezzi(input, max1, max2, maps, laplacefield, gradientx, gradienty, num_it,hx,hy, label, debug) == 1 ) {
+    if ( thickness2DYezzi(input, max1, max2, maps, laplacefield, gradientx, gradienty, num_it,hx,hy, label_cortex, debug) == 1 ) {
       printf("Error in thickness2D\n");
     }
   } else {
-    if ( thickness2DYezzi_reverse(input, max1, max2, maps, laplacefield, gradientx, gradienty, num_it,hx,hy, label, debug) == 1 ) {
+    if ( thickness2DYezzi_reverse(input, max1, max2, maps, laplacefield, gradientx, gradienty, num_it,hx,hy, label_cortex, debug) == 1 ) {
     printf("Error in thickness2D\n");
     }
   }
@@ -158,6 +221,13 @@ int main(int argc, char* argv[]) {
 
   printf("Writing ouput %s:\n",outputfile);
   write_float_output(outputfile, maps, max2, max1, 1, color_mode);
+
+  if (compute_mean == 1) {
+    int npoints;
+    float sigma, mean;
+    mean = compute_mean_thickness2D(input, maps, label_cortex, max1, max2, &npoints, &sigma);
+    printf("Mean thickness = %f std = %f (over %d band pixels)\n", mean, sigma, npoints);
+  }
 
   free(laplacefield);
   free(maps);

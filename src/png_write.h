@@ -38,4 +38,18 @@ int write_png_from_float(const char *filename, const float *data,
 int write_float_output(const char *filename, const float *data,
                        int width, int height, int zero_anchored, int color_mode);
 
+/* Scan data[0..n-1], record which byte values occur into present[256]
+   (each entry set to 0 or 1), print the sorted list of distinct values to
+   stdout, and return the number of distinct values. */
+int print_domain_values(const unsigned char *data, int n, unsigned char present[256]);
+
+/* Returns 1 if `value` is one of the domain values (present[value] set);
+   otherwise prints an error naming the option `optname` and returns 0. */
+int require_label(const unsigned char present[256], int value, const char *optname);
+
+/* Same as print_domain_values but for an unsigned short volume (used by the 3D
+   tools). Prints every distinct value; present[0..255] is filled for values in
+   that range so require_label() can be used with the usual small labels. */
+int print_domain_values_ushort(const unsigned short *data, int n, unsigned char present[256]);
+
 #endif

@@ -690,3 +690,36 @@ int thickness2Dgradient(unsigned char* prototypes,int max1, int max2, float *inp
   free(list3.elem);
   return 0; /* success */
 }
+
+/* Mean and standard deviation of the thickness over the band (pixels whose
+   input label equals label_cortex). Non-finite map values (e.g. +inf left at a
+   boundary pixel) are skipped. Returns the mean; *std gets the standard
+   deviation and *npoints the number of band pixels averaged. */
+float compute_mean_thickness2D(unsigned char *input, float *maps, int label_cortex, int max1, int max2, int *npoints, float *std) {
+  int i, n = 0;
+  float mean = 0;
+
+  for (i=0; i<max1*max2; i++) {
+    if (input[i] == label_cortex && isfinite(maps[i])) {
+      mean += maps[i];
+      n++;
+    }
+  }
+  if (n == 0) {
+    *npoints = 0;
+    *std = 0;
+    return 0;
+  }
+  mean = mean/(float)n;
+
+  *std = 0;
+  for (i=0; i<max1*max2; i++) {
+    if (input[i] == label_cortex && isfinite(maps[i])) {
+      *std += (mean - maps[i])*(mean - maps[i]);
+    }
+  }
+  *std = (n > 1) ? sqrt(*std/(n-1)) : 0;
+  *npoints = n;
+
+  return mean;
+}
