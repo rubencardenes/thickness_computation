@@ -1,4 +1,4 @@
-# (c) Copyright, Rub�n C�rdenes Almeida. March, 2004
+# (c) Copyright, Ruben Cardenes Almeida. March, 2004
 # Thikness algorithms (2D and 3D) using a Laplacian scalar field 
 # (solving PDE's proposed by Yezzi) and using ordered propagation
 
@@ -80,6 +80,7 @@ Output: if the output filename ends in ".png", a PNG image of the thickness
 ```
 
 ## options: 
+```
 -d debug option: gives more text information, and saves images for gradients 
    (x,y), laplacian field, and domain
 -w swap bytes after reading input file
@@ -102,6 +103,7 @@ Output: if the output filename ends in ".png", a PNG image of the thickness
 --hx --hy pixel size parameters (default: 1,1)
 --DT compute thickness using Euclidean DT (then laplacian is not used)
 --streamlines show only the streamlines in the output file (only for testing)
+```
 
 ## Examples 2D:
 Each example below uses `-s` (bidirectional sum); the three images per example
@@ -177,7 +179,6 @@ thickness2D_knee [options] input2D.png output2D.png
               --hx hy (1)
               --hy hx (1)
               --lc band label (2)
-```
 Input: 8-bit grayscale PNG; the image dimensions are read from the file (so
        max1/max2 are no longer passed on the command line). The distinct label
        values are printed, and the band label (--lc, default 2) must be present
@@ -186,6 +187,7 @@ Input: 8-bit grayscale PNG; the image dimensions are read from the file (so
 Output: filename ending in ".png" writes a PNG of the thickness map (grayscale,
         or RGB when -c is 1 or 2; background = black); any other extension writes
         a raw float image, as before.
+```
 
 ## Examples
 ```sh
@@ -234,6 +236,7 @@ Output: volume float file, representing the distances from one boundary to the o
 ```
 
 ## options: 
+```
 -d debug option: gives more text information, and saves volumens for gradients 
    (x,y,z), laplacian field, and domain
 -w swap bytes after reading input files
@@ -252,6 +255,7 @@ Output: volume float file, representing the distances from one boundary to the o
 --lc label of the band (cortex, default 2)
 --hx --hy --hz voxel size parameters (default: 1,1,1)
 --DT compute thickness using Euclidean DT (then laplacian is not used)
+```
 
 ## Examples
 Caja
