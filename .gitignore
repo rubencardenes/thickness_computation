@@ -28,6 +28,10 @@ core
 /laplacefile.flt
 /gradientXnew.flt
 /gradientYnew.flt
+/domain_modificado3d.vol
+
+# Test outputs
+tests/output/
 
 # macOS
 .DS_Store
