@@ -1,6 +1,6 @@
 # (c) Copyright, Ruben Cardenes Almeida. March, 2004
-# Thikness algorithms (2D and 3D) using a Laplacian scalar field 
-# (solving PDE's proposed by Yezzi) and using ordered propagation
+# Thickness algorithms (2D and 3D) using a Laplacian scalar field
+# (solving PDEs proposed by Yezzi) and using ordered propagation
 
 ## Build
 ```sh
@@ -47,7 +47,7 @@ computation that follows, which always operates on the canonical
 0/1/2/255 domain. This is also the input format `thickness2D_knee` expects to
 receive directly (see below).
 
-## Usage 
+## Usage
 ```
 thickness2D [options] input2D.png output2D.png
               -d (debug mode)
@@ -70,7 +70,7 @@ thickness2D [options] input2D.png output2D.png
 Input: 8-bit grayscale PNG defining the domain, labeled as:
        "lc" in the band
        "lw" in the interior
-        whatever different label, in the outer
+       any other label, in the outer region
        The image dimensions (rows, cols) are taken from the PNG, so nrows/ncols
        are no longer passed on the command line.
 Output: if the output filename ends in ".png", a PNG image of the thickness
@@ -86,13 +86,13 @@ Output: if the output filename ends in ".png", a PNG image of the thickness
 -w swap bytes after reading input file
 -r reverse: compute the thickness from 1 to 0 (without -r thickness is 
    computed from 0 to 1)
--s compute thickness in both directions and sum both results and resting 
+-s compute thickness in both directions, sum both results, and subtract 
    one unit
 -k knee mode: computation of boundaries for the knee (experimental)
 -n iterations thickness: number of iterations for thickness 
    computation (default 10)
 -i number of iterations for laplace computation (default 100) 
--l lamba convergence parameter used in laplace computation 
+-l lambda convergence parameter used in laplace computation 
    (0.5 default value is ok) 
 -m compute and show mean and standard deviation of thickness 
 --lw label of the interior (white matter, default 3) 
@@ -211,7 +211,7 @@ thickness3D  [options] segmented.vols/segmented_prefix output3D.volf nrows ncols
               -d (debug mode)
               -n iterations_thickness (10)
               -i iterations_laplace (100)
-              -w (swapbytes)
+              -w (swap bytes)
               -r (reverse)
               -s (sum)
               -k (knee mode)
@@ -224,31 +224,30 @@ thickness3D  [options] segmented.vols/segmented_prefix output3D.volf nrows ncols
               --hz hz (1)
               --DT (compute thickness with Euclidean DT)
 
-Output: volume float file, representing the distances from one boundary to the other according to a metric defined by the laplacian field
 Input: unsigned short volume file (with extension vols), or set of files numbered from 001 to nslices 
-       segmented data for the cortex white matter and the rest of classes. 
+       segmented data for the cortex, white matter, and the rest of the classes. 
        The input should be labeled as:
           "lc" in the band to compute the thickness (cortex)
           "lw" in the inner (white matter)
-           whatever different label, in the outer (outside the brain)
+          any other label, in the outer (outside the brain)
 
 Output: volume float file, representing the distances from one boundary to the other according to a metric defined by the laplacian field
 ```
 
 ## options: 
 ```
--d debug option: gives more text information, and saves volumens for gradients 
+-d debug option: gives more text information, and saves volumes for gradients 
    (x,y,z), laplacian field, and domain
 -w swap bytes after reading input files
 -r reverse: compute the thickness from 1 to 0 (without -r thickness is 
    computed from 0 to 1)
--s compute thickness in both directions and sum both results and resting 
+-s compute thickness in both directions, sum both results, and subtract 
    one unit
 -k knee mode: computation of boundaries for the knee (experimental)
 -n iterations thickness: number of iterations for thickness computation 
    (default 10)
 -i number of iterations for laplace computation (default 100) 
--l lamba convergence parameter used in laplace computation (0.5 default 
+-l lambda convergence parameter used in laplace computation (0.5 default 
    value is ok) 
 -m compute and show mean and standard deviation of thickness 
 --lw label of the interior (white matter, default 3) 
@@ -258,11 +257,11 @@ Output: volume float file, representing the distances from one boundary to the o
 ```
 
 ## Examples
-Caja
+Box
 ```sh
 ./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 data/input_caja3d.vols Thickness.volf 80 80 80
 ```
-Elipsoid
+Ellipsoid
 ```sh
 ./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 data/phantom_elipsoid.vols Thickness.volf 80 80 80
 ```
@@ -332,7 +331,7 @@ laplace3D max1 max2 max3 input-prefix output3d-prefix iterations [lambda]
 ```
 
 --------------------------------
-# Poisson2D
+# poisson2D
 
 Solves the 2D Poisson equation over a domain (a variant of the Laplace solver
 that includes a source term). This is experimental; the interesting output is
