@@ -240,4 +240,5 @@ int main(int argc, char* argv[]) {
   fprintf(stdout,"thickness time: ");
   print_timing(stdout, endinit, endtotal);
   printf("OK thickness2D\n");
+  return 0;
 }
