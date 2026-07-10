@@ -95,7 +95,6 @@ int main(int argc, char* argv[]) {
   struct timeval endtotal;
   char *segmented_file,*original_file;
   unsigned char *aux,*output;
-  float *output_float;
 
   if (argc != 9) {
     printf("Usage: compute_boundary2D max1 max2 segmented_file.ush original_file.mri output2D.chr label threshold swapbyte(0/1) \n");
@@ -167,20 +166,6 @@ int main(int argc, char* argv[]) {
     output[i] = segmented[i];
   }
 
-  /* control code */
-  output_float=(float*)malloc(max1*max2*sizeof(float));
-  for (i=0;i<max1*max2;i++) {
-    output_float[i] = segmented[i];
-  }
-  fp = fopen("/home/ruben/data/knee-images/thickness/010/output2D.flt","w");
-  if (fp == NULL) {
-    fprintf(stderr,"Failed writing file \n");
-    exit(1);
-  }
-  fwrite(output_float,sizeof(float),max1*max2,fp);
-  fclose(fp);
-  /* control code */
-
   /* Write data */
   fp = fopen(argv[5],"w");
   if (fp == NULL) {
@@ -188,14 +173,13 @@ int main(int argc, char* argv[]) {
     exit(1);
   }
   fwrite(output,sizeof(unsigned char),max1*max2,fp);
-  
+
   fclose(fp);
 
   /* Free data */
-  free(original); 
+  free(original);
   free(segmented);
   free(output);
-  free(output_float);
   printf("compute_boundary2D OK\n");
   return 0;
 

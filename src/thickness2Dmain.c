@@ -30,15 +30,15 @@ int compute_boundary_cortex2D(unsigned char *segmented,int max1,int max2, int la
 		    ((segmented[sum+1]==label_cortex)||
 		     (segmented[sum-1]==label_cortex)||
 		     
-		     (segmented[sum+max2]==label_cortex)||
-		     (segmented[sum-max2]==label_cortex))) {
+		     (segmented[sum+max1]==label_cortex)||
+		     (segmented[sum-max1]==label_cortex))) {
 	  segmented[sum] = 1; 
 	} else if ( (segmented[sum]==0) &&
 		    ((segmented[sum+1]==label_cortex)||
 		     (segmented[sum-1]==label_cortex)||
 		     
-		     (segmented[sum+max2]==label_cortex)||
-		     (segmented[sum-max2]==label_cortex))) {	  
+		     (segmented[sum+max1]==label_cortex)||
+		     (segmented[sum-max1]==label_cortex))) {	  
 	  segmented[sum] = 128; 
 	}
       sum++;

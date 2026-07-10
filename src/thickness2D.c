@@ -247,19 +247,19 @@ int thickness2DYezzi(unsigned char* prototypes,int max1, int max2, float *maps, 
     for (i=0;i<max1*max2;i++) {
       prot_copia[i] = prototypes[i]; /* to recover the domain after the first iteration */
       if (prot_copia[i] == 0) {
-	     list1.elem[list1.num_elem] = i; 
+	     if (list1.num_elem >= max_number_in_list) {
+	       printf("Error list1.num_elem >= %d\n",max_number_in_list);
+	       return 1;
+	     }
+	     list1.elem[list1.num_elem] = i;
 	     list1.num_elem++;
 	     maps[i]=0;
       }
-      if (list1.num_elem > max_number_in_list) {
-	    printf("Error list1.num_elem > %d\n",max_number_in_list);
-	    return 1;
-      }
-    }    
- 
+    }
+
     while (list1.num_elem != 0 || list2.num_elem != 0) {
       /* printf("num elem list1: %d\n",list1.num_elem);*/
-      while (list1.num_elem != 0) {    
+      while (list1.num_elem != 0) {
 	    /* Get element from list1 */
 	    mapindex = list1.elem[list1.num_elem-1];
 	    list1.num_elem--;
@@ -268,31 +268,39 @@ int thickness2DYezzi(unsigned char* prototypes,int max1, int max2, float *maps, 
 	      for (y=-1;y<2;y++) {
 	        if (x==0 && y ==0) continue;
 	        newmapindex = mapindex + x + y*max2;
+	        xr = maptox(newmapindex,max2);
+	        yr = maptoy(newmapindex,max2);
+	        if (xr < 0 || xr >= max2 || yr < 0 || yr >= max1) continue;
 	        if (prot_copia[newmapindex] == label_cortex) {
-	          /* Compute new distance */ 
-	          xr = maptox(newmapindex,max2);
-	          yr = maptoy(newmapindex,max2);
-	      
-	          distf = distanceYezzi(gradientx,gradienty,newmapindex,xr,yr,maps,max2,0.00,hx,hy);	      
-	
-	          if (distf > 0) { 
-		        maps[newmapindex] = distf;	      
+	          /* Compute new distance */
+	          distf = distanceYezzi(gradientx,gradienty,newmapindex,xr,yr,maps,max2,0.00,hx,hy);
+
+	          if (distf > 0) {
+		        maps[newmapindex] = distf;
 	    	    flag = 1;
-    		    /* Put new element in list2*/	  	    
+    		    /* Put new element in list2*/
+	    	    if (list2.num_elem >= max_number_in_list) {
+	    	      printf("Error list2.num_elem >= %d\n",max_number_in_list);
+	    	      return 1;
+	    	    }
 	    	    list2.elem[list2.num_elem] = newmapindex;
 		        list2.num_elem++;
-    		    prot_copia[newmapindex] = 0;	 
-	          } 	     	    
+    		    prot_copia[newmapindex] = 0;
+	          }
 	        }
     	  }
 	    }
 	    if (flag == 0) {
 	      /* Ponemos en un lista auxiliar el punto que no pudo propagarse*/
+	      if (list_aux.num_elem >= max_number_in_list) {
+	        printf("Error list_aux.num_elem >= %d\n",max_number_in_list);
+	        return 1;
+	      }
 	      list_aux.elem[list_aux.num_elem] = mapindex;
 	      list_aux.num_elem++;
 	    }
       }
-      
+
       for (i=0;i<list_aux.num_elem;i++) {
 	  /* while (list_aux.num_elem != 0) {    */
 	  /* Get element from list1 */
@@ -301,24 +309,28 @@ int thickness2DYezzi(unsigned char* prototypes,int max1, int max2, float *maps, 
 	    for (y=-1;y<2;y++) {
 	      if (x==0 && y ==0) continue;
 	      newmapindex = mapindex + x + y*max2;
+	      xr = maptox(newmapindex,max2);
+	      yr = maptoy(newmapindex,max2);
+	      if (xr < 0 || xr >= max2 || yr < 0 || yr >= max1) continue;
 	      if (prot_copia[newmapindex] == label_cortex) {
-	        /* Compute new distance */ 
-	        xr = maptox(newmapindex,max2);
-	        yr = maptoy(newmapindex,max2);
-	     
-	        distf = distanceYezzi(gradientx,gradienty,newmapindex,xr,yr,maps,max2,r,hx,hy); 	     	
-	      
-	        if (distf > 0) { 
-		  maps[newmapindex] = distf;	      
-		  /* Put new element in list2*/	  	    
+	        /* Compute new distance */
+	        distf = distanceYezzi(gradientx,gradienty,newmapindex,xr,yr,maps,max2,r,hx,hy);
+
+	        if (distf > 0) {
+		  maps[newmapindex] = distf;
+		  /* Put new element in list2*/
+		  if (list2.num_elem >= max_number_in_list) {
+		    printf("Error list2.num_elem >= %d\n",max_number_in_list);
+		    return 1;
+		  }
 		  list2.elem[list2.num_elem] = newmapindex;
 		  list2.num_elem++;
 		  prot_copia[newmapindex] = 0;
 	      }
 	    }
 	  }
-	}	 
-      } 
+	}
+      }
       list_aux.num_elem = 0;
       /* printf("num elem list2: %d\n",list2.num_elem);*/
       d++;
@@ -382,20 +394,20 @@ int thickness2DYezzi_reverse(unsigned char* prototypes,int max1, int max2, float
     for (i=0;i<max1*max2;i++) {
       prot_copia[i] = prototypes[i]; /* to recover the domain after the first iteration */
       if (prot_copia[i] == 1) {
-	list1.elem[list1.num_elem] = i; 
+	if (list1.num_elem >= max_number_in_list) {
+	  printf("Error list1.num_elem >= %d\n",max_number_in_list);
+	  return 1;
+	}
+	list1.elem[list1.num_elem] = i;
 	list1.num_elem++;
 	maps[i]=0;
       }
-      if (list1.num_elem > max_number_in_list) {
-	printf("Error list1.num_elem > %d\n",max_number_in_list);
-	return 1;
-      }
-    }    
-  
+    }
+
     d = 0;
     while (list1.num_elem != 0 || list2.num_elem != 0) {
       /* printf("num elem list1: %d\n",list1.num_elem);*/
-      while (list1.num_elem != 0) {    
+      while (list1.num_elem != 0) {
 	/* Get element from list1 */
 	mapindex = list1.elem[list1.num_elem-1];
 	list1.num_elem--;
@@ -404,31 +416,39 @@ int thickness2DYezzi_reverse(unsigned char* prototypes,int max1, int max2, float
 	  for (y=-1;y<2;y++) {
 	    if (x==0 && y ==0) continue;
 	    newmapindex = mapindex + x + y*max2;
+	    xr = maptox(newmapindex,max2);
+	    yr = maptoy(newmapindex,max2);
+	    if (xr < 0 || xr >= max2 || yr < 0 || yr >= max1) continue;
 	    if (prot_copia[newmapindex] == label_cortex) {
-	      /* Compute new distance */ 
-	      xr = maptox(newmapindex,max2);
-	      yr = maptoy(newmapindex,max2);
-	      
-	      distf = distanceYezzi_reverse(gradientx,gradienty,newmapindex,xr,yr,maps,max2,0.000,hx,hy); 
+	      /* Compute new distance */
+	      distf = distanceYezzi_reverse(gradientx,gradienty,newmapindex,xr,yr,maps,max2,0.000,hx,hy);
 
 	      if (distf > 0) {
 		flag = 1;
-		maps[newmapindex] = distf;	      
-		/* Put new element in list2*/	  	    
+		maps[newmapindex] = distf;
+		/* Put new element in list2*/
+		if (list2.num_elem >= max_number_in_list) {
+		  printf("Error list2.num_elem >= %d\n",max_number_in_list);
+		  return 1;
+		}
 		list2.elem[list2.num_elem] = newmapindex;
 		list2.num_elem++;
 		prot_copia[newmapindex] = 1;
-	      } 	     	   
+	      }
 	    }
 	  }
 	}
 	if (flag == 0) {
 	  /* Ponemos en un lista auxiliar el punto que no pudo propagarse*/
+	  if (list_aux.num_elem >= max_number_in_list) {
+	    printf("Error list_aux.num_elem >= %d\n",max_number_in_list);
+	    return 1;
+	  }
 	  list_aux.elem[list_aux.num_elem] = mapindex;
 	  list_aux.num_elem++;
 	}
-      }      
-      
+      }
+
       for (i=0;i<list_aux.num_elem;i++) {
 	/* while (list_aux.num_elem != 0) { */
 	/* Get element from list1 */
@@ -437,24 +457,28 @@ int thickness2DYezzi_reverse(unsigned char* prototypes,int max1, int max2, float
 	  for (y=-1;y<2;y++) {
 	    if (x==0 && y ==0) continue;
 	    newmapindex = mapindex + x + y*max2;
+	    xr = maptox(newmapindex,max2);
+	    yr = maptoy(newmapindex,max2);
+	    if (xr < 0 || xr >= max2 || yr < 0 || yr >= max1) continue;
 	    if (prot_copia[newmapindex] == label_cortex) {
-	      /* Compute new distance */ 
-	      xr = maptox(newmapindex,max2);
-	      yr = maptoy(newmapindex,max2);
+	      /* Compute new distance */
+	      distf = distanceYezzi_reverse(gradientx,gradienty,newmapindex,xr,yr,maps,max2,r,hx,hy);
 
-	      distf = distanceYezzi_reverse(gradientx,gradienty,newmapindex,xr,yr,maps,max2,r,hx,hy); 
-
-	      if (distf > 0) { 
-		maps[newmapindex] = distf;	      
-		/* Put new element in list2*/	  	    
+	      if (distf > 0) {
+		maps[newmapindex] = distf;
+		/* Put new element in list2*/
+		if (list2.num_elem >= max_number_in_list) {
+		  printf("Error list2.num_elem >= %d\n",max_number_in_list);
+		  return 1;
+		}
 		list2.elem[list2.num_elem] = newmapindex;
 		list2.num_elem++;
 		prot_copia[newmapindex] = 1;
 	      }
 	    }
 	  }
-	}	 
-      }    
+	}
+      }
    
       /* printf("num elem list2: %d, list_aux.num_elem %d\n",list2.num_elem,list_aux.num_elem);*/
       list_aux.num_elem = 0;

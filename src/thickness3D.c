@@ -153,7 +153,7 @@ float distanceYezzi3D_relax(float ***gradientx,float ***gradienty,float ***gradi
     }
   }
 
-  if (flag = 0) {
+  if (flag == 0) {
     distf = -1;
   } else {
     distf = distf/(fabs(gradientx[z][y][x])/hx + fabs(gradienty[z][y][x])/hy + fabs(gradientz[z][y][x])/hz);
@@ -329,19 +329,19 @@ int thickness3DYezzi(unsigned char* prototypes,int max1, int max2, int max3, flo
     for (i=0;i<max1*max2*max3;i++) {
       prot_copia[i] =prototypes[i]; /* to recover the domain after the first iteration */
       if (prot_copia[i] == 0) {
-	list1.elem[list1.num_elem] = i; 
+	if (list1.num_elem >= max_number_in_list) {
+	  printf("Error list1.num_elem >= %d\n",max_number_in_list);
+	  return 1;
+	}
+	list1.elem[list1.num_elem] = i;
 	list1.num_elem++;
 	maps[i]=0;
       }
-      if (list1.num_elem > max_number_in_list) {
-	printf("Error list1.num_elem > %d\n",max_number_in_list);
-	return 1;
-      }
-    }    
- 
+    }
+
     while (list1.num_elem != 0 || list2.num_elem != 0) {
       /* printf("num elem list1: %d\n",list1.num_elem);*/
-      while (list1.num_elem != 0) {    
+      while (list1.num_elem != 0) {
 	/* Get element from list1 */
 	mapindex = list1.elem[list1.num_elem-1];
 	list1.num_elem--;
@@ -351,36 +351,44 @@ int thickness3DYezzi(unsigned char* prototypes,int max1, int max2, int max3, flo
 	    for (y=-1;y<2;y++) {
 	      if ((abs(x) + abs(y) + abs(z))!=1) continue; /* 3D neighborhood of size 6*/
 	      newmapindex = mapindex + max1*max2*z + y*max2 + x;
+	      xr = maptox3d(newmapindex,max1,max2);
+	      yr = maptoy3d(newmapindex,max1,max2);
+	      zr = maptoz3d(newmapindex,max1,max2);
+	      if (xr < 0 || xr >= max2 || yr < 0 || yr >= max1 || zr < 0 || zr >= max3) continue;
 	      if (prot_copia[newmapindex] == 2) {
-		/* Compute new distance */ 
-		xr = maptox3d(newmapindex,max1,max2);
-		yr = maptoy3d(newmapindex,max1,max2);
-		zr = maptoz3d(newmapindex,max1,max2);
-		
+		/* Compute new distance */
 		distf = distanceYezzi3D(gradientx,gradienty,gradientz,newmapindex,
 					xr,yr,zr,maps,max1,max2,r,hx,hy,hz);
 
-		if (distf > 0 && distf < INF) { 
+		if (distf > 0 && distf < INF) {
 		  if (fabs(maps[mapindex] - distf) < 1) {
-		    maps[newmapindex] = distf;	      
+		    maps[newmapindex] = distf;
 		    flag = 1;
-		    /* Put new element in list2*/	  	    
+		    /* Put new element in list2*/
+		    if (list2.num_elem >= max_number_in_list) {
+		      printf("Error list2.num_elem >= %d\n",max_number_in_list);
+		      return 1;
+		    }
 		    list2.elem[list2.num_elem] = newmapindex;
 		    list2.num_elem++;
-		    prot_copia[newmapindex] = 0;	 
+		    prot_copia[newmapindex] = 0;
 		  }
-		} 	     	    
+		}
 	      }
 	    }
 	  }
 	}
 	if (flag == 0) {
 	  /* Ponemos en un lista auxiliar el punto que no pudo propagarse*/
+	  if (list_aux.num_elem >= max_number_in_list) {
+	    printf("Error list_aux.num_elem >= %d\n",max_number_in_list);
+	    return 1;
+	  }
 	  list_aux.elem[list_aux.num_elem] = mapindex;
 	  list_aux.num_elem++;
 	}
       }
-      
+
       for (i=0;i<list_aux.num_elem;i++) {
 	/* while (list_aux.num_elem != 0) {    */
 	/* Get element from list1 */
@@ -389,12 +397,13 @@ int thickness3DYezzi(unsigned char* prototypes,int max1, int max2, int max3, flo
 	  for (x=-1;x<2;x++) {
 	    for (y=-1;y<2;y++) {
 	      if ((abs(x) + abs(y) + abs(z))!=1) continue; /* 3D neighborhood of size 6*/
-	      newmapindex = mapindex + max1*max2*z + y*max2 + x;	  
+	      newmapindex = mapindex + max1*max2*z + y*max2 + x;
+	      xr = maptox3d(newmapindex,max1,max2);
+	      yr = maptoy3d(newmapindex,max1,max2);
+	      zr = maptoz3d(newmapindex,max1,max2);
+	      if (xr < 0 || xr >= max2 || yr < 0 || yr >= max1 || zr < 0 || zr >= max3) continue;
 	      if (prot_copia[newmapindex] == 2) {
-		/* Compute new distance */ 	      
-		xr = maptox3d(newmapindex,max1,max2);
-		yr = maptoy3d(newmapindex,max1,max2);
-		zr = maptoz3d(newmapindex,max1,max2);		
+		/* Compute new distance */
 		if (l==0) {
 		  distf = distanceYezzi3D_relax(gradientx,gradienty,gradientz,newmapindex,
 						xr,yr,zr,maps,max1,max2,r,hx,hy,hz);
@@ -402,10 +411,14 @@ int thickness3DYezzi(unsigned char* prototypes,int max1, int max2, int max3, flo
 		  distf = distanceYezzi3D(gradientx,gradienty,gradientz,newmapindex,
 					  xr,yr,zr,maps,max1,max2,r,hx,hy,hz);
 		}
-		if (distf > 0 && distf < INF) { 
+		if (distf > 0 && distf < INF) {
 		  if (l==0 || fabs(maps[mapindex] - distf) < 1) {
-		    maps[newmapindex] = distf;	      		    
-		    /* Put new element in list2*/	  	    
+		    maps[newmapindex] = distf;
+		    /* Put new element in list2*/
+		    if (list2.num_elem >= max_number_in_list) {
+		      printf("Error list2.num_elem >= %d\n",max_number_in_list);
+		      return 1;
+		    }
 		    list2.elem[list2.num_elem] = newmapindex;
 		    list2.num_elem++;
 		    prot_copia[newmapindex] = 0;
@@ -413,8 +426,8 @@ int thickness3DYezzi(unsigned char* prototypes,int max1, int max2, int max3, flo
 		}
 	      }
 	    }
-	  }	 
-	} 
+	  }
+	}
       }
       list_aux.num_elem = 0;
       /* printf("num elem list2: %d\n",list2.num_elem);*/
@@ -479,20 +492,20 @@ int thickness3DYezzi_reverse(unsigned char* prototypes,int max1, int max2, int m
     for (i=0;i<max1*max2*max3;i++) {
       prot_copia[i] = prototypes[i]; /* to recover the domain after the first iteration */
       if (prot_copia[i] == 1) {
-	list1.elem[list1.num_elem] = i; 
+	if (list1.num_elem >= max_number_in_list) {
+	  printf("Error list1.num_elem >= %d\n",max_number_in_list);
+	  return 1;
+	}
+	list1.elem[list1.num_elem] = i;
 	list1.num_elem++;
 	maps[i]=0;
       }
-      if (list1.num_elem > max_number_in_list) {
-	printf("Error list1.num_elem > %d\n",max_number_in_list);
-	return 1;
-      }
-    }    
-    
+    }
+
     d = 0;
     while (list1.num_elem != 0 || list2.num_elem != 0) {
       /* printf("num elem list1: %d\n",list1.num_elem);*/
-      while (list1.num_elem != 0) {    
+      while (list1.num_elem != 0) {
 	/* Get element from list1 */
 	mapindex = list1.elem[list1.num_elem-1];
 	list1.num_elem--;
@@ -502,36 +515,44 @@ int thickness3DYezzi_reverse(unsigned char* prototypes,int max1, int max2, int m
 	    for (y=-1;y<2;y++) {
 	      if ((abs(x) + abs(y) + abs(z))!=1) continue; /* 3D neighborhood of size 6*/
 	      newmapindex = mapindex + max1*max2*z + y*max2 +x;
+	      xr = maptox3d(newmapindex,max1,max2);
+	      yr = maptoy3d(newmapindex,max1,max2);
+	      zr = maptoz3d(newmapindex,max1,max2);
+	      if (xr < 0 || xr >= max2 || yr < 0 || yr >= max1 || zr < 0 || zr >= max3) continue;
 	      if (prot_copia[newmapindex] == 2) {
-		/* Compute new distance */ 
-		xr = maptox3d(newmapindex,max1,max2);
-		yr = maptoy3d(newmapindex,max1,max2);
-		zr = maptoz3d(newmapindex,max1,max2);
-		
+		/* Compute new distance */
 		distf = distanceYezzi_reverse3D(gradientx,gradienty,gradientz,newmapindex,
-						xr,yr,zr,maps,max1,max2,r,hx,hy,hz);		
-		
-		if (distf > 0 && distf < INF) {		  
+						xr,yr,zr,maps,max1,max2,r,hx,hy,hz);
+
+		if (distf > 0 && distf < INF) {
 		  if (fabs(maps[mapindex] - distf) < 1.5) {
 		    flag = 1;
-		    maps[newmapindex] = distf;	      
-		    /* Put new element in list2*/	  	    
+		    maps[newmapindex] = distf;
+		    /* Put new element in list2*/
+		    if (list2.num_elem >= max_number_in_list) {
+		      printf("Error list2.num_elem >= %d\n",max_number_in_list);
+		      return 1;
+		    }
 		    list2.elem[list2.num_elem] = newmapindex;
 		    list2.num_elem++;
 		    prot_copia[newmapindex] = 1;
 		  }
-		} 	     	   
+		}
 	      }
 	    }
 	  }
 	}
 	if (flag == 0) {
 	  /* Ponemos en un lista auxiliar el punto que no pudo propagarse*/
+	  if (list_aux.num_elem >= max_number_in_list) {
+	    printf("Error list_aux.num_elem >= %d\n",max_number_in_list);
+	    return 1;
+	  }
 	  list_aux.elem[list_aux.num_elem] = mapindex;
 	  list_aux.num_elem++;
 	}
-      }      
-      
+      }
+
       for (i=0;i<list_aux.num_elem;i++) {
 	/* while (list_aux.num_elem != 0) { */
 	/* Get element from list1 */
@@ -541,12 +562,13 @@ int thickness3DYezzi_reverse(unsigned char* prototypes,int max1, int max2, int m
 	    for (y=-1;y<2;y++) {
 	      if ((abs(x) + abs(y) + abs(z))!=1) continue; /* 3D neighborhood of size 6*/
 	      newmapindex = mapindex + max1*max2*z + y*max2 + x;
+	      xr = maptox3d(newmapindex,max1,max2);
+	      yr = maptoy3d(newmapindex,max1,max2);
+	      zr = maptoz3d(newmapindex,max1,max2);
+	      if (xr < 0 || xr >= max2 || yr < 0 || yr >= max1 || zr < 0 || zr >= max3) continue;
 	      /*if (prototypes[newmapindex] == 2 || prototypes[newmapindex] == 0) {*/
 	      if (prot_copia[newmapindex] == 2) {
-		/* Compute new distance */ 
-		xr = maptox3d(newmapindex,max1,max2);
-		yr = maptoy3d(newmapindex,max1,max2);
-		zr = maptoz3d(newmapindex,max1,max2);
+		/* Compute new distance */
 		if (l==0) {
 		  distf = distanceYezzi_reverse3D_relax(gradientx,gradienty,gradientz,newmapindex,
 							xr,yr,zr,maps,max1,max2,r,hx,hy,hz);
@@ -554,18 +576,22 @@ int thickness3DYezzi_reverse(unsigned char* prototypes,int max1, int max2, int m
 		  distf = distanceYezzi_reverse3D(gradientx,gradienty,gradientz,newmapindex,
 						  xr,yr,zr,maps,max1,max2,r,hx,hy,hz);
 		}
-		if (distf > 0 && distf < INF) {		 		 
+		if (distf > 0 && distf < INF) {
 		  if (fabs(maps[mapindex] - distf) < 1.5 || l ==0) {
-		    maps[newmapindex] = distf;	     		   
-		    /* Put new element in list2*/	  	    
+		    maps[newmapindex] = distf;
+		    /* Put new element in list2*/
+		    if (list2.num_elem >= max_number_in_list) {
+		      printf("Error list2.num_elem >= %d\n",max_number_in_list);
+		      return 1;
+		    }
 		    list2.elem[list2.num_elem] = newmapindex;
 		    list2.num_elem++;
-		    prot_copia[newmapindex] = 1;		    
+		    prot_copia[newmapindex] = 1;
 		  }
-		}		      
+		}
 	      }
 	    }
-	  }	 
+	  }
 	}
       }
       /* printf("num elem list2: %d, list_aux.num_elem %d\n",list2.num_elem,list_aux.num_elem);*/
@@ -605,7 +631,7 @@ int thickness3DYezzi_reverse(unsigned char* prototypes,int max1, int max2, int m
 
 float compute_mean_thickness(unsigned char *input,float *maps, int label_cortex,int boundary_l, int max1, int max2, int max3, float *std ) {
   int i,j,k,sum = 0, npoints = 0;
-  float mean;
+  float mean = 0;
 
   for(k=0; k<max3; k++) {
     for(j=0; j<max2; j++) {
@@ -616,8 +642,8 @@ float compute_mean_thickness(unsigned char *input,float *maps, int label_cortex,
 		    ((input[sum+1]==boundary_l)||
 		     (input[sum-1]==boundary_l)||
 		     
-		     (input[sum+max2]==boundary_l)||
-		     (input[sum-max2]==boundary_l)||
+		     (input[sum+max1]==boundary_l)||
+		     (input[sum-max1]==boundary_l)||
 		     
 		     (input[sum+max1*max2]==boundary_l)||
 		     (input[sum-max1*max2]==boundary_l))) {	  
@@ -641,8 +667,8 @@ float compute_mean_thickness(unsigned char *input,float *maps, int label_cortex,
 		    ((input[sum+1]==boundary_l)||
 		     (input[sum-1]==boundary_l)||
 		     
-		     (input[sum+max2]==boundary_l)||
-		     (input[sum-max2]==boundary_l)||
+		     (input[sum+max1]==boundary_l)||
+		     (input[sum-max1]==boundary_l)||
 		     
 		     (input[sum+max1*max2]==boundary_l)||
 		     (input[sum-max1*max2]==boundary_l))) {	  

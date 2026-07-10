@@ -90,9 +90,9 @@ int EdgeDetect(unsigned char *domain, int max1, int max2){
 	if ( (domain[i]!=0)&&
 	     ((domain[i+1]==0)||
 	      (domain[i-1]==0)||
-	      
-	      (domain[i+max2]==0)||
-	      (domain[i-max2]==0))) {	   	    
+
+	      (domain[i+max1]==0)||
+	      (domain[i-max1]==0))) {
 	  
 	  domain[i]=1;	    	    
 	}
@@ -107,7 +107,7 @@ int EdgeDetect(unsigned char *domain, int max1, int max2){
 
 
 int maxcomponent2D(unsigned short* data, int max1,int max2, int label) {
-  int i,j,k,xr,yr,x,y,mapindex,newmapindex,exceed,count;
+  int i,j,k,xr,yr,x,y,mapindex,newmapindex,exceed,count,xnew,ynew;
   struct list {
     int num_elem;
     int *elem;
@@ -135,17 +135,20 @@ int maxcomponent2D(unsigned short* data, int max1,int max2, int label) {
 	  mapindex = mylist.elem[mylist.num_elem-1];
 	  mylist.num_elem--;
 	  for (x=-1;x<2;x++) {
-	    for (y=-1;y<2;y++) {      
+	    for (y=-1;y<2;y++) {
 	      newmapindex = mapindex + max2*y + x;
-	      if (data[newmapindex] == label && aux_data[newmapindex] == 0) {
+	      xnew = maptox(newmapindex,max2);
+	      ynew = maptoy(newmapindex,max2);
+	      if (xnew >= 0 && xnew < max2 && ynew >= 0 && ynew < max1 &&
+		  data[newmapindex] == label && aux_data[newmapindex] == 0) {
 		mylist.elem[mylist.num_elem] = newmapindex;
 		mylist.num_elem++;
 		list2.elem[list2.num_elem] = newmapindex;
 		list2.num_elem++;
-		aux_data[newmapindex] = 1;	
+		aux_data[newmapindex] = 1;
 	      }
 	    }
-	  }	  
+	  }
 	}
 	if (list2.num_elem > tam) {
 	  tam = list2.num_elem;
@@ -166,7 +169,7 @@ int maxcomponent2D(unsigned short* data, int max1,int max2, int label) {
 }
 
 int sizefilter2D(unsigned short* data, int max1,int max2, int tam, int oldlabel, int newlabel) {
-  int i,j,k,xr,yr,x,y,mapindex,newmapindex,exceed,count;
+  int i,j,k,xr,yr,x,y,mapindex,newmapindex,exceed,count,xnew,ynew;
   struct list {
     int num_elem;
     int *elem;
@@ -194,21 +197,24 @@ int sizefilter2D(unsigned short* data, int max1,int max2, int tam, int oldlabel,
 	  mapindex = mylist.elem[mylist.num_elem-1];
 	  mylist.num_elem--;
 	  for (x=-1;x<2;x++) {
-	    for (y=-1;y<2;y++) {      
+	    for (y=-1;y<2;y++) {
 	      newmapindex = mapindex + max2*y + x;
-	      if (data[newmapindex] == oldlabel && aux_data[newmapindex] == 0) {
+	      xnew = maptox(newmapindex,max2);
+	      ynew = maptoy(newmapindex,max2);
+	      if (xnew >= 0 && xnew < max2 && ynew >= 0 && ynew < max1 &&
+		  data[newmapindex] == oldlabel && aux_data[newmapindex] == 0) {
 		mylist.elem[mylist.num_elem] = newmapindex;
 		mylist.num_elem++;
 		list2.elem[list2.num_elem] = newmapindex;
 		list2.num_elem++;
 		aux_data[newmapindex] = 1;
 		if (list2.num_elem > tam) {
-		  exceed = 1;		
+		  exceed = 1;
 		}
 	      }
 	    }
-	  }	  
-	}	
+	  }
+	}
 	if (exceed == 0) { /* If the size is not exceeded we relabel de data */	 
 	  for (k=0;k<list2.num_elem;k++) {
 	    mapindex = list2.elem[k];
@@ -284,12 +290,13 @@ int floodfill(unsigned char *domain, int startindex, unsigned short oldlabel, un
 }
 
 int RelabelBoundary(unsigned char *domain,int max1,int max2){
-  int x,y,xr,yr,i;
+  int x,y,xr,yr,i,xnew,ynew;
   int newmapindex,mapindex,start,newstart;
   struct list {
     int num_elem;
     int *elem;
   } mylist;
+  int max_num_elem_mylist = max1*max2;
 
   i = 0;
   start = -1;
@@ -312,27 +319,29 @@ int RelabelBoundary(unsigned char *domain,int max1,int max2){
     return 1;
   }
 
-  mylist.elem = (int*)malloc(sizeof(int)*10);
+  mylist.elem = (int*)malloc(sizeof(int)*max_num_elem_mylist);
   domain[start] = 0;
   mapindex = start;
   mylist.num_elem = 1;
   mylist.elem[0] = start;
-  while (mylist.num_elem != 0) { 
+  while (mylist.num_elem != 0) {
     /* Get new element from mylist */
-    if (mylist.num_elem > 10) {
-      printf("Error mylist.num_elem > 10\n");
-      return 1;
-    }
     mapindex = mylist.elem[mylist.num_elem-1];
     mylist.num_elem--;
     for (x=-1;x<2;x++) {
       for (y=-1;y<2;y++) {
 	if (x==0 && y ==0) continue;
 	newmapindex = mapindex + x + y*max2;
-	if (domain[newmapindex] == 1) {
-	  /* Put new element in mylist*/	  
+	xnew = maptox(newmapindex,max2);
+	ynew = maptoy(newmapindex,max2);
+	if (xnew >= 0 && xnew < max2 && ynew >= 0 && ynew < max1 && domain[newmapindex] == 1) {
+	  /* Put new element in mylist*/
 	  mylist.elem[mylist.num_elem] = newmapindex;
 	  mylist.num_elem++;
+	  if (mylist.num_elem > max_num_elem_mylist) {
+	    printf("Error, exceeded number of elements in mylist.num_elem ( > %d ), in RelabelBoundary\n",max_num_elem_mylist);
+	    return 1;
+	  }
 	  domain[newmapindex] = 0;
 	}
       }
@@ -575,7 +584,7 @@ int compute_corners(unsigned short *input, int max1,int max2) {
   int max_num_list = 2000, num_vec = 10;
   int *ideal;
   float* coseno_ideal;
-  float coseno[num_vec];
+  float coseno[num_vec+1];
 
   aux = (unsigned char*)calloc(max1*max2,sizeof(unsigned char));
   mylist.elem = (int *)malloc(max_num_list*sizeof(int));
@@ -781,7 +790,7 @@ int new_compute_corners(unsigned short *input, int max1,int max2) {
   int max_num_list = 2000, num_vec = 10;
   int *ideal;
   float* coseno_ideal;
-  float coseno[num_vec];
+  float coseno[num_vec+1];
 
   aux = (unsigned char*)calloc(max1*max2,sizeof(unsigned char));
   mylist.elem = (int *)malloc(max_num_list*sizeof(int));

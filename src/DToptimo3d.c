@@ -275,6 +275,10 @@ int DToptimo3d(char* prototypes,int max1, int max2, int max3, int K, float** map
   d=0;
   while (1) {
     /*printf("Distancia actual: %d\n",d);*/
+    if (d+1 >= NUM_BUCKETS) {
+      printf("excedido el maximo numero de buckets: %d\n",NUM_BUCKETS);
+      return 1;
+    }
     Bucket[d+1].index_elem = (int*)malloc(sizeof(int)*MAX_ELEM_IN_BUCKET);
     Bucket[d+1].index_l = (int*)malloc(sizeof(int)*MAX_ELEM_IN_BUCKET);
     /* printf("reservada memoria para bucket d+1\n" ); */

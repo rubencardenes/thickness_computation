@@ -116,12 +116,12 @@ int EdgeDetect3D_knee(unsigned char *domain, int max1, int max2, int max3) {
 	  if ( (domain[i]==2)&&
 	       ((domain[i+1]==255)||
 		(domain[i-1]==255)||
-		
-		(domain[i+max2]==255)||
-		(domain[i-max2]==255)||
-		
+
+		(domain[i+max1]==255)||
+		(domain[i-max1]==255)||
+
 		(domain[i+max1*max2]==255)||
-		(domain[i-max1*max2]==255))) {	   	    
+		(domain[i-max1*max2]==255))) {
 	    
 	    domain[i]=1;	    	    
 	  }
@@ -148,12 +148,12 @@ int EdgeDetect3D(unsigned char *domain, int max1, int max2, int max3) {
 	  if ( (domain[i]!=0)&&
 	       ((domain[i+1]==0)||
 		(domain[i-1]==0)||
-		
-		(domain[i+max2]==0)||
-		(domain[i-max2]==0)||
-		
+
+		(domain[i+max1]==0)||
+		(domain[i-max1]==0)||
+
 		(domain[i+max1*max2]==0)||
-		(domain[i-max1*max2]==0))) {	   	    
+		(domain[i-max1*max2]==0))) {
 	  
 	    domain[i]=1;	    	    
 	  }
@@ -286,13 +286,13 @@ int floodfill3D(unsigned char *domain, int startindex, unsigned short oldlabel, 
 }
 
 int RelabelBoundary3D(unsigned char *domain,int max1,int max2,int max3){
-  int x,y,z,xr,yr,zr,i;
+  int x,y,z,xr,yr,zr,i,xnew,ynew,znew;
   int newmapindex,mapindex,start,newstart;
   struct list {
     int num_elem;
     int *elem;
   } mylist;
-  int max_num_elem_mylist = 10000;
+  int max_num_elem_mylist = max1*max2*max3;
 
   i = 0;
   
@@ -322,8 +322,12 @@ int RelabelBoundary3D(unsigned char *domain,int max1,int max2,int max3){
 	for (y=-1;y<2;y++) {
 	  if (x==0 && y ==0 && z==0) continue;
 	  newmapindex = mapindex + z*max1*max2 + y*max2 + x;
-	  if (domain[newmapindex] == 1) {
-	    /* Put new element in mylist*/	  
+	  xnew = maptox3d(newmapindex,max1,max2);
+	  ynew = maptoy3d(newmapindex,max1,max2);
+	  znew = maptoz3d(newmapindex,max1,max2);
+	  if (xnew >= 0 && xnew < max2 && ynew >= 0 && ynew < max1 && znew >= 0 && znew < max3 &&
+	      domain[newmapindex] == 1) {
+	    /* Put new element in mylist*/
 	    mylist.elem[mylist.num_elem] = newmapindex;
 	    mylist.num_elem++;
 	    if (mylist.num_elem > max_num_elem_mylist) {

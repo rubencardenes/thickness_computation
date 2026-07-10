@@ -35,8 +35,8 @@ int compute_boundary_cortex3D(unsigned short *segmented,int max1,int max2, int m
 	       ((segmented[sum+1]==label_cortex)||
 		(segmented[sum-1]==label_cortex)||
 		     
-		(segmented[sum+max2]==label_cortex)||
-		(segmented[sum-max2]==label_cortex)||
+		(segmented[sum+max1]==label_cortex)||
+		(segmented[sum-max1]==label_cortex)||
 		     
 		(segmented[sum+max1*max2]==label_cortex)||
 		(segmented[sum-max1*max2]==label_cortex))) {
@@ -45,8 +45,8 @@ int compute_boundary_cortex3D(unsigned short *segmented,int max1,int max2, int m
 		      ((segmented[sum+1]==label_cortex)||
 		       (segmented[sum-1]==label_cortex)||
 		     
-		       (segmented[sum+max2]==label_cortex)||
-		       (segmented[sum-max2]==label_cortex)||
+		       (segmented[sum+max1]==label_cortex)||
+		       (segmented[sum-max1]==label_cortex)||
 		     
 		       (segmented[sum+max1*max2]==label_cortex)||
 		       (segmented[sum-max1*max2]==label_cortex))) {	  

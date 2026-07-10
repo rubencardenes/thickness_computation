@@ -20,10 +20,10 @@ int test_boundary3D(unsigned char *segmented,unsigned short *original,int mapind
     for(y=-1; y<=1; y++) {
       for (z=-1; z<=1; z++) {
 	if (x==0 && y==0 && z==0) continue;
-	if (segmented[mapindex+max1*max2*z+max2*y+x] == 1) {
+	if (segmented[mapindex+max1*max2*z+max1*y+x] == 1) {
 	  count1++;
 	}
-	if (segmented[mapindex+max1*max2*z+max2*y+x] == 0) {
+	if (segmented[mapindex+max1*max2*z+max1*y+x] == 0) {
 	  count0++;
 	}
       }
@@ -42,9 +42,9 @@ int test_boundary3D(unsigned char *segmented,unsigned short *original,int mapind
       for(y=-n_size; y<=n_size; y++) {
 	for (z=-n_size; z<=n_size; z++) {
 	  if (x==0 && y==0 && z==0) continue;
-	  if (segmented[mapindex+max1*max2*z+max2*y+x] != segmented[mapindex]) {
+	  if (segmented[mapindex+max1*max2*z+max1*y+x] != segmented[mapindex]) {
 	    count0++;
-	    sum += original[mapindex+max1*max2*z+max2*y+x];
+	    sum += original[mapindex+max1*max2*z+max1*y+x];
 	  }
 	}
       }
@@ -90,8 +90,8 @@ int compute_boundary3D(unsigned char *segmented,unsigned short* original,int max
 		    ((segmented[sum+1]==255)||
 		     (segmented[sum-1]==255)||
 		     
-		     (segmented[sum+max2]==255)||
-		     (segmented[sum-max2]==255)||
+		     (segmented[sum+max1]==255)||
+		     (segmented[sum-max1]==255)||
 		     
 		     (segmented[sum+max1*max2]==255)||
 		     (segmented[sum-max1*max2]==255))) {
@@ -108,8 +108,8 @@ int compute_boundary3D(unsigned char *segmented,unsigned short* original,int max
 int main(int argc, char* argv[]) {
   unsigned char *input;
   unsigned short *original;
-  int i,j,swapbyte,label,tam,fsize,hsize,c,option_index;
-  float threshold;
+  int i,j,swapbyte=0,label=0,tam,fsize,hsize,c,option_index;
+  float threshold=0;
   int max1 = 256;
   int max2 = 256;
   int max3 = 1;

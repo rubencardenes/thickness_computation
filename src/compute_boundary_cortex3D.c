@@ -28,8 +28,8 @@ int compute_boundary_cortex3D(unsigned short *segmented,int max1,int max2, int m
 		    ((segmented[sum+1]==label_cortex)||
 		     (segmented[sum-1]==label_cortex)||
 		     
-		     (segmented[sum+max2]==label_cortex)||
-		     (segmented[sum-max2]==label_cortex)||
+		     (segmented[sum+max1]==label_cortex)||
+		     (segmented[sum-max1]==label_cortex)||
 		     
 		     (segmented[sum+max1*max2]==label_cortex)||
 		     (segmented[sum-max1*max2]==label_cortex))) {
@@ -38,8 +38,8 @@ int compute_boundary_cortex3D(unsigned short *segmented,int max1,int max2, int m
 		    ((segmented[sum+1]==label_cortex)||
 		     (segmented[sum-1]==label_cortex)||
 		     
-		     (segmented[sum+max2]==label_cortex)||
-		     (segmented[sum-max2]==label_cortex)||
+		     (segmented[sum+max1]==label_cortex)||
+		     (segmented[sum-max1]==label_cortex)||
 		     
 		     (segmented[sum+max1*max2]==label_cortex)||
 		     (segmented[sum-max1*max2]==label_cortex))) {	  
@@ -55,7 +55,7 @@ int compute_boundary_cortex3D(unsigned short *segmented,int max1,int max2, int m
 
 int main(int argc, char* argv[]) {
   unsigned short *input;
-  int i,j,swapbyte,label_wm,label_cortex,tam,fsize,hsize,c,option_index;
+  int i,j,swapbyte=0,label_wm=3,label_cortex=2,tam,fsize,hsize,c,option_index;
   float threshold;
   int max1 = 256;
   int max2 = 256;
@@ -143,7 +143,11 @@ int main(int argc, char* argv[]) {
   input = (unsigned short*)malloc(sizeof(unsigned short)*max1*max2*max3);
 
   l = strchr(input_prefix,'.');
-  strncpy(extension,l,5);
+  if (l != (unsigned char*)NULL) {
+    strncpy(extension,l,5);
+  } else {
+    strcpy(extension,"");
+  }
   if (strcmp(extension,".vols") == 0) {
     fp = fopen(input_prefix,"r");
     if (fp == NULL) {
