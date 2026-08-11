@@ -14,7 +14,7 @@ int numasignaciones = 0;
 
 int main(int argc, char* argv[]) {
   unsigned char *input;
-  float *maps;
+  float *maps,*streaml_maps;
   float **laplacefield,**gradientx,**gradienty;
   float lambda = 0.5, hx = 1,hy = 1;
   int i,col,row,c,option_index,num_it = 10,iterations_laplace = 100, suma = 0, swapbyte = 0;
@@ -217,10 +217,22 @@ int main(int argc, char* argv[]) {
     printf("Error in thickness2D\n");
     } */
   
+  if (streamlines == 1) {
+    streaml_maps = (float*)malloc(sizeof(float)*max1*max2);
+    if ( thickness2Dgradient(input, max1, max2, maps, streaml_maps, laplacefield, gradientx, gradienty) == 1 ) {
+      printf("Error in thickness2D\n");
+    }
+    printf("Writing ouput streamline %s:\n",outputfile);
+    write_float_output(outputfile, streaml_maps, max2, max1, 1, color_mode);
+    free(streaml_maps);
+  }
+
   gettimeofday(&endtotal,NULL);
 
-  printf("Writing ouput %s:\n",outputfile);
-  write_float_output(outputfile, maps, max2, max1, 1, color_mode);
+  if (streamlines == 0) {
+    printf("Writing ouput %s:\n",outputfile);
+    write_float_output(outputfile, maps, max2, max1, 1, color_mode);
+  }
 
   if (compute_mean == 1) {
     int npoints;

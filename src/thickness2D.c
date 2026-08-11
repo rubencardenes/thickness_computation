@@ -597,7 +597,7 @@ int thickness2Dgradient(unsigned char* prototypes,int max1, int max2, float *inp
   struct list list2,list3;
   int max_number_in_list = 50000;
 
-  angle_error = (float*)malloc(sizeof(float)*max2*max2);
+  angle_error = (float*)malloc(sizeof(float)*max1*max2);
   for (j=0;j<max1*max2;j++) {
     maps[j] = -1;
     angle_error[j] = 0;
@@ -616,15 +616,15 @@ int thickness2Dgradient(unsigned char* prototypes,int max1, int max2, float *inp
     if (prototypes[i] == 2 &&
 	(prototypes[i+1] == 0 || prototypes[i-1] == 0 ||
 	 prototypes[i+max2] == 0 || prototypes[i-max2] == 0) ) {
+      if (list1.num_elem >= max_number_in_list) {
+	printf("Error list1.num_elem >= %d\n",max_number_in_list);
+	return 1;
+      }
       list1.elem[list1.num_elem] = i;
       list1.num_elem++;
       maps[i] = 0;
     }
-    if (list1.num_elem > max_number_in_list) {
-      printf("Error list1.num_elem > %d\n",max_number_in_list);
-      return 1;
-    }
-  } 
+  }
  
   d = 0;
   while (1) {

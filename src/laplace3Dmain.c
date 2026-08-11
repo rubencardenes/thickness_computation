@@ -117,8 +117,8 @@ int main(int argc,char* argv[]) {
   {
     long nsolved=0; float smin=0,smax=0,ssum=0; int sinit=0, sum=0;
     for (k=0;k<max3;k++) {
-      for (i=0;i<max1;i++) {
-        for (j=0;j<max2;j++) {
+      for (j=0;j<max2;j++) {
+        for (i=0;i<max1;i++) {
           if (input[sum] == 2) {
             float v = output[k][i][j];
             if (!sinit) { smin=smax=v; sinit=1; } else { if (v<smin) smin=v; if (v>smax) smax=v; }

@@ -28,10 +28,13 @@ int maptoz3d(int mapindex,int max1,int max2) {
 int laplace3D(unsigned char* input,int max1, int max2, int max3, float*** output, int iterations, float lambda) {
   int i,j,k,l;
   int sum = 0;
-  /* Initialize domain, inside=0, and boundaries values*/
+  /* Initialize domain, inside=0, and boundaries values.
+     Iteration order (k,j,i with i innermost) must match the i-fastest/
+     j-next(max1 stride)/k-slowest(max1*max2 stride) convention that
+     compute_boundary_cortex3D/EdgeDetect3D use to populate `input`. */
   for (k=0;k<max3;k++) {
-    for (i=0;i<max1;i++) {
-      for (j=0;j<max2;j++) {
+    for (j=0;j<max2;j++) {
+      for (i=0;i<max1;i++) {
 	if (input[sum] == 2) {
 	  output[k][i][j] = 0;
 	} else if (input[sum] == 3) {
@@ -43,13 +46,13 @@ int laplace3D(unsigned char* input,int max1, int max2, int max3, float*** output
       }
     }
   }
-  
+
   /* Solve Laplacian */
   for (l=0;l<iterations;l++) {
     sum = 0;
     for (k=0;k<max3;k++) {
-      for (i=0;i<max1;i++) {
-	for (j=0;j<max2;j++) {
+      for (j=0;j<max2;j++) {
+	for (i=0;i<max1;i++) {
 	  if (input[sum] == 2
 	      && i != 0 && i != max1-1 && j!=0 && j != max2-1 && k != 0 && k != max3-1) {
 	    /*output[k][i][j] = (output[k-1][i][j] + output[k+1][i][j] + output[k][i-1][j] + output[k][i+1][j] + output[k][i][j-1] + output[k][i][j+1])/6;*/
@@ -60,17 +63,20 @@ int laplace3D(unsigned char* input,int max1, int max2, int max3, float*** output
       }
     }
   }
- 
+
   return 0;
 }
 
 int laplace3D_voxelsize(unsigned char* input,int max1, int max2, int max3, float*** output, int iterations,  float hx, float hy, float hz, float lambda) {
   int i,j,k,l;
   int sum = 0;
-  /* Initialize domain, inside=0, and boundaries values*/
+  /* Initialize domain, inside=0, and boundaries values.
+     Iteration order (k,j,i with i innermost) must match the i-fastest/
+     j-next(max1 stride)/k-slowest(max1*max2 stride) convention that
+     compute_boundary_cortex3D/EdgeDetect3D use to populate `input`. */
   for (k=0;k<max3;k++) {
-    for (i=0;i<max1;i++) {
-      for (j=0;j<max2;j++) {
+    for (j=0;j<max2;j++) {
+      for (i=0;i<max1;i++) {
 	if (input[sum] == 2) {
 	  output[k][i][j] = 0;
 	} else if (input[sum] == 3) {
@@ -82,13 +88,13 @@ int laplace3D_voxelsize(unsigned char* input,int max1, int max2, int max3, float
       }
     }
   }
-  
+
   /* Solve Laplacian */
   for (l=0;l<iterations;l++) {
     sum = 0;
     for (k=0;k<max3;k++) {
-      for (i=0;i<max1;i++) {
-	for (j=0;j<max2;j++) {
+      for (j=0;j<max2;j++) {
+	for (i=0;i<max1;i++) {
 	  if (input[sum] == 2
 	      && i != 0 && i != max1-1 && j!=0 && j != max2-1 && k != 0 && k != max3-1) {
 	    output[k][i][j] = 0.5 *( (output[k-1][i][j] + output[k+1][i][j])/(hz*hz) + (output[k][i-1][j] + output[k][i+1][j])/(hy*hy) + (output[k][i][j-1] + output[k][i][j+1])/(hx*hx))*(hx*hx*hy*hy*hz*hz)/(hx*hx*hy*hy + hy*hy*hz*hz + hx*hx*hz*hz);
@@ -99,7 +105,7 @@ int laplace3D_voxelsize(unsigned char* input,int max1, int max2, int max3, float
       }
     }
   }
- 
+
   return 0;
 }
 
@@ -295,7 +301,8 @@ int RelabelBoundary3D(unsigned char *domain,int max1,int max2,int max3){
   int max_num_elem_mylist = max1*max2*max3;
 
   i = 0;
-  
+  start = -1;
+
   for(z=0; z<max3; z++) {
     for(y=0; y<max2; y++) {
       for(x=0; x<max1; x++) {
@@ -303,10 +310,12 @@ int RelabelBoundary3D(unsigned char *domain,int max1,int max2,int max3){
 	  start = i;
 	  y=max1;x=max2;z=max3;
 	}
-	i++;    
+	i++;
       }
     }
   }
+
+  if (start < 0) return 1;
 
   mylist.elem = (int*)malloc(sizeof(int)*max_num_elem_mylist);
   domain[start] = 0;

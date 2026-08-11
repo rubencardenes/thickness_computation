@@ -82,9 +82,11 @@ int compute_boundary3D(unsigned char *segmented,unsigned short* original,int max
   for(k=0; k<max3; k++) {
     for(j=0; j<max2; j++) {
       for(i=0; i<max1; i++) {     
-	if ((i==0)||(j==0)||(k==0)||(i==max1-1)||(j==max2-1)||(k==max3-1) ) {
-	/* nothing to do */	 
-	} else if ( (segmented[sum]==0 || segmented[sum]==1 
+	/* test_boundary3D's fallback path scans a window of radius n_size=2,
+	   so the margin here must be at least 2 to keep that scan in bounds. */
+	if ((i<2)||(j<2)||(k<2)||(i>=max1-2)||(j>=max2-2)||(k>=max3-2) ) {
+	/* nothing to do */
+	} else if ( (segmented[sum]==0 || segmented[sum]==1
 		     || segmented[sum]==2)&&
 		    ((segmented[sum+1]==255)||
 		     (segmented[sum-1]==255)||

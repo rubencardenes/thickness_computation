@@ -21,14 +21,14 @@ int main(int argc,char** argv){
   int npixels = -1;
   int i;
 
-  if (argc != 3) { 
+  if (argc != 3) {
     printf("Usage: float2ushort filein fileout\n");
-    return; 
-  } 
+    return 1;
+  }
   fp = fopen(argv[1],"r");
   if (fp == NULL) {
     printf("No such file \n");
-    return;
+    return 1;
   }
   npixels = (int)fileSize(argv[1])/4;
   printf("size: %d \n", npixels);
@@ -53,6 +53,7 @@ int main(int argc,char** argv){
   free(dataout);
 
   printf("float2ushort OK\n");
+  return 0;
 }
 
 

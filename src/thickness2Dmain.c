@@ -22,24 +22,24 @@ int compute_boundary_cortex2D(unsigned char *segmented,int max1,int max2, int la
   }
 
   sum=0;
-  for(j=0; j<max2; j++) {
-    for(i=0; i<max1; i++) {     
+  for(i=0; i<max1; i++) {
+    for(j=0; j<max2; j++) {
       if ((i==0)||(j==0)||(i==max1-1)||(j==max2-1)) {
-	  /* nothing to do */	 
+	  /* nothing to do */
 	} else if ( (segmented[sum]==label_wm) &&
 		    ((segmented[sum+1]==label_cortex)||
 		     (segmented[sum-1]==label_cortex)||
-		     
-		     (segmented[sum+max1]==label_cortex)||
-		     (segmented[sum-max1]==label_cortex))) {
-	  segmented[sum] = 1; 
+
+		     (segmented[sum+max2]==label_cortex)||
+		     (segmented[sum-max2]==label_cortex))) {
+	  segmented[sum] = 1;
 	} else if ( (segmented[sum]==0) &&
 		    ((segmented[sum+1]==label_cortex)||
 		     (segmented[sum-1]==label_cortex)||
-		     
-		     (segmented[sum+max1]==label_cortex)||
-		     (segmented[sum-max1]==label_cortex))) {	  
-	  segmented[sum] = 128; 
+
+		     (segmented[sum+max2]==label_cortex)||
+		     (segmented[sum-max2]==label_cortex))) {
+	  segmented[sum] = 128;
 	}
       sum++;
     }

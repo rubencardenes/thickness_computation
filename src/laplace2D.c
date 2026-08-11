@@ -82,19 +82,19 @@ int EdgeDetect(unsigned char *domain, int max1, int max2){
   int x,y,i;
   i = 0;
  
-  for(y=0; y<max2; y++) {
-    for(x=0; x<max1; x++) {
-      if ((x==0)||(y==0)||(x==max1-1)||(y==max2-1)) {	 
-	/* domain[i]=255;*/	 
+  for(x=0; x<max1; x++) {
+    for(y=0; y<max2; y++) {
+      if ((x==0)||(y==0)||(x==max1-1)||(y==max2-1)) {
+	/* domain[i]=255;*/
       } else
 	if ( (domain[i]!=0)&&
 	     ((domain[i+1]==0)||
 	      (domain[i-1]==0)||
 
-	      (domain[i+max1]==0)||
-	      (domain[i-max1]==0))) {
-	  
-	  domain[i]=1;	    	    
+	      (domain[i+max2]==0)||
+	      (domain[i-max2]==0))) {
+
+	  domain[i]=1;
 	}
       /*else {	   	   
 	domain[i]=255;

@@ -47,11 +47,11 @@ int ReadRawMRI(unsigned short *ptr, int headerSize, FILE *fp, int Nrow, int Ncol
   }
 
   int iBytesRead;
-  iBytesRead = fread(ptr, sizeof(unsigned short), Ncol*Ncol, fp);
-  if ((iBytesRead != Ncol*Ncol) || ferror(fp) ) {
+  iBytesRead = fread(ptr, sizeof(unsigned short), Nrow*Ncol, fp);
+  if ((iBytesRead != Nrow*Ncol) || ferror(fp) ) {
     printf("Error: Failed while reading data\n");
     free(ptr);
-    ptr = (unsigned short *)NULL;
+    return -1;
   }
 
   // The GE short format has MSB first and LSB second

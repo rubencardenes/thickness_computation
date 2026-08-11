@@ -655,23 +655,27 @@ float compute_mean_thickness(unsigned char *input,float *maps, int label_cortex,
     }
   }
   
+  if (npoints == 0) {
+    (*std) = 0;
+    return 0;
+  }
   mean = mean/(float)npoints;
   sum=0;
   (*std) = 0;
   for(k=0; k<max3; k++) {
     for(j=0; j<max2; j++) {
-      for(i=0; i<max1; i++) {     
+      for(i=0; i<max1; i++) {
 	if ((i==0)||(j==0)||(k==0)||(i==max1-1)||(j==max2-1)||(k==max3-1) ) {
-	  /* nothing to do */	 
+	  /* nothing to do */
 	} else if ( (input[sum]==label_cortex) &&
 		    ((input[sum+1]==boundary_l)||
 		     (input[sum-1]==boundary_l)||
-		     
+
 		     (input[sum+max1]==boundary_l)||
 		     (input[sum-max1]==boundary_l)||
-		     
+
 		     (input[sum+max1*max2]==boundary_l)||
-		     (input[sum-max1*max2]==boundary_l))) {	  
+		     (input[sum-max1*max2]==boundary_l))) {
 	  (*std) += (mean - maps[sum])*(mean - maps[sum]);
 	}
 	sum++;
@@ -680,7 +684,7 @@ float compute_mean_thickness(unsigned char *input,float *maps, int label_cortex,
   }
 
   printf("npoints %d\n",npoints);
-  (*std) = sqrt((*std)/(npoints -1));
+  (*std) = (npoints > 1) ? sqrt((*std)/(npoints -1)) : 0;
 
   return mean;
 }
@@ -689,23 +693,27 @@ float compute_mean_thickness_volume(unsigned char *input,float *maps, int label_
   int i, npoints = 0;
   float mean = 0;
 
-  for(i=0; i<max1*max2*max3; i++) {     
-    if (input[i] == label_cortex) {	  
+  for(i=0; i<max1*max2*max3; i++) {
+    if (input[i] == label_cortex) {
       mean += maps[i];
       npoints++;
-    }	
+    }
+  }
+  if (npoints == 0) {
+    (*std) = 0;
+    return 0;
   }
   mean = mean/(float)npoints;
 
   (*std) = 0;
-  for(i=0; i<max1*max2*max3; i++) {     
-    if (input[i] == label_cortex) {	  
+  for(i=0; i<max1*max2*max3; i++) {
+    if (input[i] == label_cortex) {
       (*std) += (mean - maps[i])*(mean - maps[i]);
     }
   }
 
   printf("npoints %d\n",npoints);
-  (*std) = sqrt((*std)/(npoints -1));
+  (*std) = (npoints > 1) ? sqrt((*std)/(npoints -1)) : 0;
 
   return mean;
 }
