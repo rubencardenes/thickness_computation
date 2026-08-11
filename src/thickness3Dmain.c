@@ -83,7 +83,7 @@ int main(int argc, char* argv[]) {
   struct timeval endinit;
   struct timeval endtotal;
   char input_prefix[200];
-  char inputfile[200],outputfile[200],extension[5];
+  char inputfile[200],outputfile[200],extension[6];
   char *laplacefile;
   unsigned char *aux,*l;
 
@@ -223,8 +223,9 @@ int main(int argc, char* argv[]) {
   }
 
   l = strchr(input_prefix,'.');
-  if (l != (unsigned char*)NULL) {   
-    strncpy(extension,l,5);
+  if (l != (unsigned char*)NULL) {
+    strncpy(extension,(char*)l,5);
+    extension[5] = '\0';
   } else {
     strcpy(extension,"");
   }
@@ -443,6 +444,18 @@ int main(int argc, char* argv[]) {
     fwrite(maps,sizeof(float),max1*max2*max3,fp);    
     fclose(fp);
     
+    for (k=0;k<max3;k++) {
+      for (i=0;i<max1;i++) {
+	free(laplacefield[k][i]);
+	free(gradientx[k][i]);
+	free(gradienty[k][i]);
+	free(gradientz[k][i]);
+      }
+      free(laplacefield[k]);
+      free(gradientx[k]);
+      free(gradienty[k]);
+      free(gradientz[k]);
+    }
     free(laplacefield);
     free(gradientx);
     free(gradienty);

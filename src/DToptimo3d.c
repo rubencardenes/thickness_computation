@@ -62,6 +62,7 @@ int assign(struct element *Element_p, int l,int mapindex,int d,float **maps,int 
     (*Element_p).idcur = (*Element_p).icur;
   }
   (*Element_p).dcur = d;
+  return 0;
 }
 
 int propagate3d(struct element Element_p, int l,int max1,int max2, int max3, struct element *proto,struct bucket *Bucket, float** maps, int dcur,struct element *Element,int K, int domain_label, char *prototypes, float hx, float hy, float hz) {
@@ -202,6 +203,17 @@ int DToptimo3d(char* prototypes,int max1, int max2, int max3, int K, float** map
   char mapavol[40], distvol[40];
   float distancia_from_l,distancia_ultima;
   FILE *fp,*fpdist;
+
+  /* propagate3d hardcodes maps[2] as the real-distance accumulator, and
+     assign() writes the integer bucket distance into maps[K]; those only
+     stay distinct slots for K==1. Every caller also currently allocates
+     maps with exactly 3 rows (0..2). Reject K>=2 here instead of silently
+     corrupting maps[2] until both this function and its callers are
+     generalized for K>1. */
+  if (K >= 2) {
+    printf("Error: DToptimo3d only supports K=1 (maps[2] collides with maps[K] for K>=2)\n");
+    return 1;
+  }
 
   /* inicializamos los mapas de etiquetas a -1 */
   for (i=0;i<K;i++) {

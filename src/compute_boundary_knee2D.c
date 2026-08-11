@@ -63,8 +63,10 @@ int compute_boundary2D(unsigned short *segmented,unsigned short* original,int ma
   sum=0;
   for(i=0; i<max1; i++) {
     for(j=0; j<max2; j++) {
-      if ((i==0)||(j==0)||(i==max1-1)||(j==max2-1)) {
-	/* nothing to do */	 
+      /* test_boundary scans a window of radius n_size=6, so the margin
+	 here must be at least 6 to keep that scan in bounds. */
+      if ((i<6)||(j<6)||(i>=max1-6)||(j>=max2-6)) {
+	/* nothing to do */
       } else if ( (segmented[sum]==label)&&
 		  ((segmented[sum+1]==0)||
 		   (segmented[sum-1]==0)||

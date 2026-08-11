@@ -151,11 +151,20 @@ thickness_test thickness2d_knee "$OUTDIR/thickness2d_knee.png" 5.605474 \
 
 ### thickness3D examples ######################################################
 
-thickness_test thickness3d_caja "$OUTDIR/thickness3d_caja.volf" 29.756523 \
+# thickness3d_caja and thickness3d_elipsoid reference values below were
+# recaptured after fixing a real i/j-axis transposition bug in
+# laplace3D_voxelsize/laplace3D (they read the domain buffer with a
+# different stride convention than compute_boundary_cortex3D/EdgeDetect3D
+# use to populate it). Both phantoms have i/j-asymmetric geometry (the caja
+# core spans i in [30,49] but j in [35,44]; the ellipsoid has rx=15 vs
+# ry=35), so the fix changes their measured thickness; thickness3d_sphere is
+# isotropic and is unaffected, confirming the change is a correctness fix
+# and not a regression.
+thickness_test thickness3d_caja "$OUTDIR/thickness3d_caja.volf" 23.825426 \
   ./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 \
   data/input_caja3d.vols "$OUTDIR/thickness3d_caja.volf" 80 80 80
 
-thickness_test thickness3d_elipsoid "$OUTDIR/thickness3d_elipsoid.volf" 9.954702 \
+thickness_test thickness3d_elipsoid "$OUTDIR/thickness3d_elipsoid.volf" 12.719837 \
   ./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 \
   data/phantom_elipsoid.vols "$OUTDIR/thickness3d_elipsoid.volf" 80 80 80
 

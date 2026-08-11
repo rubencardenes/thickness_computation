@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
   struct timeval endinit;
   struct timeval endtotal;
   char input_prefix[200];
-  char input_file[200],outputfile[200],extension[5];
+  char input_file[200],outputfile[200],extension[6];
   unsigned char *aux,*output,*l;
   float *output_float;
 
@@ -144,7 +144,8 @@ int main(int argc, char* argv[]) {
 
   l = strchr(input_prefix,'.');
   if (l != (unsigned char*)NULL) {
-    strncpy(extension,l,5);
+    strncpy(extension,(char*)l,5);
+    extension[5] = '\0';
   } else {
     strcpy(extension,"");
   }
