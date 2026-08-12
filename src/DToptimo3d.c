@@ -65,7 +65,7 @@ int assign(struct element *Element_p, int l,int mapindex,int d,float **maps,int 
   return 0;
 }
 
-int propagate3d(struct element Element_p, int l,int max1,int max2, int max3, struct element *proto,struct bucket *Bucket, float** maps, int dcur,struct element *Element,int K, int domain_label, char *prototypes, float hx, float hy, float hz) {
+int propagate3d(struct element Element_p, int l,int height,int width, int depth, struct element *proto,struct bucket *Bucket, float** maps, int dcur,struct element *Element,int K, int domain_label, char *prototypes, float hx, float hy, float hz) {
   int new_mapindex,dist,x,y,z,siguiente;
   int icur,icuraux;
   float dreal;
@@ -73,8 +73,8 @@ int propagate3d(struct element Element_p, int l,int max1,int max2, int max3, str
   for (x=-1;x<2;x=x+2) {
     y = 0; z = 0;
      if (Element_p.y + y >=0 && Element_p.x + x >=0 && Element_p.z + z >=0
-	&& Element_p.y + y < max2 && Element_p.x + x < max1 && Element_p.z + z < max3) {
-      new_mapindex = mapIndex3D(Element_p.x + x,Element_p.y + y,Element_p.z + z,max1,max2,max3);
+	&& Element_p.y + y < width && Element_p.x + x < height && Element_p.z + z < depth) {
+      new_mapindex = mapIndex3D(Element_p.x + x,Element_p.y + y,Element_p.z + z,height,width,depth);
       if (abs(Element_p.x - proto[l].x) < abs(Element_p.x + x - proto[l].x) || 
 	  abs(Element_p.y - proto[l].y) < abs(Element_p.y + y - proto[l].y) || 
 	  abs(Element_p.z - proto[l].z) < abs(Element_p.z + z - proto[l].z) ) {
@@ -112,8 +112,8 @@ int propagate3d(struct element Element_p, int l,int max1,int max2, int max3, str
   for (y=-1;y<2;y=y+2) {
     x = 0; z = 0;
     if (Element_p.y + y >=0 && Element_p.x + x >=0 && Element_p.z + z >=0
-	&& Element_p.y + y < max2 && Element_p.x + x < max1 && Element_p.z + z < max3) {
-      new_mapindex = mapIndex3D(Element_p.x + x,Element_p.y + y,Element_p.z + z,max1,max2,max3);
+	&& Element_p.y + y < width && Element_p.x + x < height && Element_p.z + z < depth) {
+      new_mapindex = mapIndex3D(Element_p.x + x,Element_p.y + y,Element_p.z + z,height,width,depth);
       if (abs(Element_p.x - proto[l].x) < abs(Element_p.x + x - proto[l].x) || 
 	  abs(Element_p.y - proto[l].y) < abs(Element_p.y + y - proto[l].y) ||
 	  abs(Element_p.z - proto[l].z) < abs(Element_p.z + z - proto[l].z) ) {
@@ -151,8 +151,8 @@ int propagate3d(struct element Element_p, int l,int max1,int max2, int max3, str
   for (z=-1;z<2;z=z+2) {
     x = 0; y=0;
     if (Element_p.y + y >=0 && Element_p.x + x >=0 && Element_p.z + z >=0
-	&& Element_p.y + y < max2 && Element_p.x + x < max1 && Element_p.z + z < max3) {
-      new_mapindex = mapIndex3D(Element_p.x + x,Element_p.y + y,Element_p.z + z,max1,max2,max3);
+	&& Element_p.y + y < width && Element_p.x + x < height && Element_p.z + z < depth) {
+      new_mapindex = mapIndex3D(Element_p.x + x,Element_p.y + y,Element_p.z + z,height,width,depth);
       if (abs(Element_p.x - proto[l].x) < abs(Element_p.x + x - proto[l].x) || 
 	  abs(Element_p.y - proto[l].y) < abs(Element_p.y + y - proto[l].y) ||
 	  abs(Element_p.z - proto[l].z) < abs(Element_p.z + z - proto[l].z) ) {
@@ -190,7 +190,7 @@ int propagate3d(struct element Element_p, int l,int max1,int max2, int max3, str
   return 0;
 }
 
-int DToptimo3d(char* prototypes,int max1, int max2, int max3, int K, float** maps, int object_label, int domain_label, int debug, float hx, float hy, float hz) {
+int DToptimo3d(char* prototypes,int height, int width, int depth, int K, float** maps, int object_label, int domain_label, int debug, float hx, float hy, float hz) {
   int i,j,x,y,z,l,N,r,count;
   int siguiente,indice_actual;
   int d,mapindex,buckets_empty;
@@ -217,17 +217,17 @@ int DToptimo3d(char* prototypes,int max1, int max2, int max3, int K, float** map
 
   /* inicializamos los mapas de etiquetas a -1 */
   for (i=0;i<K;i++) {
-    for (j=0;j<max1*max2*max3;j++) {
+    for (j=0;j<height*width*depth;j++) {
       maps[i][j] = -1;
     }
   } 
-  for (j=0;j<max1*max2*max3;j++) {
+  for (j=0;j<height*width*depth;j++) {
     maps[2][j] = 999999;
   }
   /* reservamos memoria para los prototipos, para los Elementos 
      y para el bucket inicial (bucket 0) */
-  Proto=(struct element*)malloc(sizeof(struct element)*max1*max2*max3);
-  Element=(struct element*)malloc(sizeof(struct element)*max1*max2*max3);
+  Proto=(struct element*)malloc(sizeof(struct element)*height*width*depth);
+  Element=(struct element*)malloc(sizeof(struct element)*height*width*depth);
   Bucket[0].index_elem = (int*)malloc(sizeof(int)*MAX_ELEM_IN_BUCKET);
   Bucket[0].index_l = (int*)malloc(sizeof(int)*MAX_ELEM_IN_BUCKET);  
   memset(Bucket[0].index_elem,0,sizeof(int)*MAX_ELEM_IN_BUCKET);
@@ -241,9 +241,9 @@ int DToptimo3d(char* prototypes,int max1, int max2, int max3, int K, float** map
 
   /* inicializamos los elementos los prototipos, y el bucket inicial */
   i=0;
-  for (z=0;z<max3;z++) {
-    for (x=0;x<max1;x++) {
-      for (y=0;y<max2;y++) {
+  for (z=0;z<depth;z++) {
+    for (x=0;x<height;x++) {
+      for (y=0;y<width;y++) {
 	Element[i].icur = 0;
 	Element[i].dcur = -1;
 	Element[i].idcur = 0;
@@ -256,9 +256,9 @@ int DToptimo3d(char* prototypes,int max1, int max2, int max3, int K, float** map
   }
   l = 0;
   count = 0;
-  for (z=0;z<max3;z++) {
-    for (x=0;x<max1;x++) {
-       for (y=0;y<max2;y++) {
+  for (z=0;z<depth;z++) {
+    for (x=0;x<height;x++) {
+       for (y=0;y<width;y++) {
 	if (prototypes[count] == object_label ) {
 	  Proto[l].x= x;
 	  Proto[l].y= y;
@@ -301,7 +301,7 @@ int DToptimo3d(char* prototypes,int max1, int max2, int max3, int K, float** map
       l=Bucket[d].index_l[siguiente];      
       Bucket[d].index_elem[siguiente] = -1;      
       Bucket[d].num_elem--;     
-      mapindex =mapIndex3D(Element[indice_actual].x,Element[indice_actual].y,Element[indice_actual].z,max1,max2,max3);
+      mapindex =mapIndex3D(Element[indice_actual].x,Element[indice_actual].y,Element[indice_actual].z,height,width,depth);
       if (mapindex != indice_actual) {
 	printf("Error catastrofico: mapindex %d != indice_actual %d \n",mapindex,indice_actual);
 	return 1;
@@ -313,7 +313,7 @@ int DToptimo3d(char* prototypes,int max1, int max2, int max3, int K, float** map
 	if (Element[indice_actual].dcur < d) {	  
 	  assign(&Element[indice_actual],l,mapindex,d,maps,K);
 	  /* printf("asignado pixel\n");*/
-	  if (propagate3d(Element[indice_actual],l,max1,max2,max3,Proto,Bucket,maps,d,Element,K,domain_label,prototypes,hx,hy,hz) != 0) return 1;
+	  if (propagate3d(Element[indice_actual],l,height,width,depth,Proto,Bucket,maps,d,Element,K,domain_label,prototypes,hx,hy,hz) != 0) return 1;
 	} else {
 	  for (j=Element[indice_actual].idcur;j<=Element[indice_actual].icur;j++) {
 	    if (maps[j-1][mapindex] == l) {break;}		
@@ -327,7 +327,7 @@ int DToptimo3d(char* prototypes,int max1, int max2, int max3, int K, float** map
 	      } else {	          
 		assign(&Element[indice_actual],l,mapindex,d,maps,K);
 	      }
-	      if (propagate3d(Element[indice_actual],l,max1,max2,max3,Proto,Bucket,maps,d,Element,K,domain_label,prototypes,hx,hy,hz) != 0) return 1;
+	      if (propagate3d(Element[indice_actual],l,height,width,depth,Proto,Bucket,maps,d,Element,K,domain_label,prototypes,hx,hy,hz) != 0) return 1;
 	      break;
 	    }
 	  }/* end for */

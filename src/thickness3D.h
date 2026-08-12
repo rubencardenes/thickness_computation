@@ -34,8 +34,8 @@ struct nodeDataNew {
   int slice;
 };
 
-int thickness3DYezzi(unsigned char* prototypes,int max1, int max2, int max3, float *maps, float*** laplacefield,float*** gradientx, float*** gradienty, float*** gradientz, int num_it,float hx, float hy, float hz);
-int thickness3DYezzi_reverse(unsigned char* prototypes,int max1, int max2, int max3, float *maps, float*** laplacefield,float*** gradientx, float*** gradienty, float*** gradientz, int num_it, float hx, float hy, float hz);
-float** DToptimo(char* prototypes,int max1, int max2, int K, float** maps, int tipo_mapa);
-float compute_mean_thickness(unsigned char *input,float *maps, int label_cortex,int boundary_l, int max1, int max2, int max3 ,float* sigma);
-float compute_mean_thickness_volume(unsigned char *input,float *maps, int label_cortex, int max1, int max2, int max3, float *sigma);
+int thickness3DYezzi(unsigned char* prototypes,int height, int width, int depth, float *maps, float*** laplacefield,float*** gradientx, float*** gradienty, float*** gradientz, int num_it,float hx, float hy, float hz);
+int thickness3DYezzi_reverse(unsigned char* prototypes,int height, int width, int depth, float *maps, float*** laplacefield,float*** gradientx, float*** gradienty, float*** gradientz, int num_it, float hx, float hy, float hz);
+float** DToptimo(char* prototypes,int height, int width, int K, float** maps, int tipo_mapa);
+float compute_mean_thickness(unsigned char *input,float *maps, int label_cortex,int boundary_l, int height, int width, int depth ,float* sigma);
+float compute_mean_thickness_volume(unsigned char *input,float *maps, int label_cortex, int height, int width, int depth, float *sigma);

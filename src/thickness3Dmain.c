@@ -17,39 +17,39 @@ int numasignaciones = 0;
 int asignacionesraras = 0;
 int numPrototypes;
 
-int compute_boundary_cortex3D(unsigned short *segmented,int max1,int max2, int max3, int label_wm, int label_cortex) {
+int compute_boundary_cortex3D(unsigned short *segmented,int height,int width, int depth, int label_wm, int label_cortex) {
   int i,j,k,sum,found;
 
-  for (i=0;i<max1*max2*max3;i++) {
+  for (i=0;i<height*width*depth;i++) {
     if (segmented[i] != label_cortex && segmented[i] != label_wm && segmented[i] != 0 ) {
-      relabel_ushort(segmented,max1*max2*max3,segmented[i],0);
+      relabel_ushort(segmented,height*width*depth,segmented[i],0);
     }
   }
 
   sum=0;
-  for(k=0; k<max3; k++) {
-    for(j=0; j<max2; j++) {
-      for(i=0; i<max1; i++) {     
-	if (k > 0 && j > 0 && i > 0 && k < max3-1 && j < max2-1 && i < max1-1) {
+  for(k=0; k<depth; k++) {
+    for(j=0; j<width; j++) {
+      for(i=0; i<height; i++) {     
+	if (k > 0 && j > 0 && i > 0 && k < depth-1 && j < width-1 && i < height-1) {
 	  if ( (segmented[sum]==label_wm) &&
 	       ((segmented[sum+1]==label_cortex)||
 		(segmented[sum-1]==label_cortex)||
 		     
-		(segmented[sum+max1]==label_cortex)||
-		(segmented[sum-max1]==label_cortex)||
+		(segmented[sum+height]==label_cortex)||
+		(segmented[sum-height]==label_cortex)||
 		     
-		(segmented[sum+max1*max2]==label_cortex)||
-		(segmented[sum-max1*max2]==label_cortex))) {
+		(segmented[sum+height*width]==label_cortex)||
+		(segmented[sum-height*width]==label_cortex))) {
 	      segmented[sum] = 1; 
 	  } else if ( (segmented[sum]==0) &&
 		      ((segmented[sum+1]==label_cortex)||
 		       (segmented[sum-1]==label_cortex)||
 		     
-		       (segmented[sum+max1]==label_cortex)||
-		       (segmented[sum-max1]==label_cortex)||
+		       (segmented[sum+height]==label_cortex)||
+		       (segmented[sum-height]==label_cortex)||
 		     
-		       (segmented[sum+max1*max2]==label_cortex)||
-		       (segmented[sum-max1*max2]==label_cortex))) {	  
+		       (segmented[sum+height*width]==label_cortex)||
+		       (segmented[sum-height*width]==label_cortex))) {	  
 	    segmented[sum] = 128; 
 	  }
 	}
@@ -58,10 +58,10 @@ int compute_boundary_cortex3D(unsigned short *segmented,int max1,int max2, int m
     }
   }
 
-  relabel_ushort(segmented,max1*max2*max3,0,255);
-  relabel_ushort(segmented,max1*max2*max3,label_wm,255);
-  relabel_ushort(segmented,max1*max2*max3,label_cortex,2);
-  relabel_ushort(segmented,max1*max2*max3,128,0);
+  relabel_ushort(segmented,height*width*depth,0,255);
+  relabel_ushort(segmented,height*width*depth,label_wm,255);
+  relabel_ushort(segmented,height*width*depth,label_cortex,2);
+  relabel_ushort(segmented,height*width*depth,128,0);
   return 0;
 }
 
@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
   float lambda = 0.5, mean, sigma =0;
   float hx =1,hy = 1,hz = 1;
   int i,j,k,col,row,c,option_index,swapbyte = 0, compute_mean = 0, thickness_DT = 0;
-  int max1 = 256, max2 = 256, max3 = 1;
+  int height = 256, width = 256, depth = 1;
   int num_it = 10,iterations_laplace = 100, reverse = 0, suma = 0;
   int debug = 0,knee = 0, label_wm = 3, label_cortex = 2;
   FILE *fp,*fg;
@@ -205,20 +205,20 @@ int main(int argc, char* argv[]) {
 	printf ("Error parsing argument \n");
       if (sscanf(argv[optind++], "%s", outputfile) == 0)
 	printf ("Error parsing argument \n");
-      if (sscanf(argv[optind++], "%d", &max1) == 0)
+      if (sscanf(argv[optind++], "%d", &height) == 0)
 	printf ("Error parsing argument \n");
-      if (sscanf(argv[optind++], "%d", &max2) == 0)
+      if (sscanf(argv[optind++], "%d", &width) == 0)
 	printf ("Error parsing argument \n");
-      if (sscanf(argv[optind++], "%d", &max3) == 0)
+      if (sscanf(argv[optind++], "%d", &depth) == 0)
 	printf ("Error parsing argument \n");      
     }
   }
   
   gettimeofday(&startinit,NULL);
-  input = (unsigned char*)malloc(sizeof(unsigned char)*max1*max2*max3);
-  input_short = (unsigned short*)malloc(sizeof(unsigned short)*max1*max2*max3);
+  input = (unsigned char*)malloc(sizeof(unsigned char)*height*width*depth);
+  input_short = (unsigned short*)malloc(sizeof(unsigned short)*height*width*depth);
 
-  for (i=0;i<max1*max2*max3;i++) {
+  for (i=0;i<height*width*depth;i++) {
     input[i] = -1;
   }
 
@@ -235,24 +235,24 @@ int main(int argc, char* argv[]) {
       fprintf(stderr,"Failed reading inputfile %s\n",input_prefix);
       exit(1);
     }
-    fread(input_short,sizeof(unsigned short),max1*max2*max3,fp);
+    fread(input_short,sizeof(unsigned short),height*width*depth,fp);
     fclose(fp);
   } else {
     /* Read data */
-    for (i=0;i<max3;i++) {
+    for (i=0;i<depth;i++) {
       sprintf(inputfile,"%s.%03d",input_prefix,i+1);
       fp = fopen(inputfile,"r");
       if (fp == NULL) {
 	fprintf(stderr,"Failed reading inputfile %s\n",inputfile);
 	exit(1);
       }
-      fread(&input_short[max1*max2*i],sizeof(unsigned short),max1*max2,fp);
+      fread(&input_short[height*width*i],sizeof(unsigned short),height*width,fp);
       fclose(fp);
     }
   }
   
   if (swapbyte == 1) {
-    for (i=0; i < max1*max2*max3; i++) {
+    for (i=0; i < height*width*depth; i++) {
       aux = (unsigned char*)&input_short[i];
       input_short[i] = ReadGEShort(aux);
     }
@@ -264,7 +264,7 @@ int main(int argc, char* argv[]) {
      encoded in the input, so --lw/--lc are not validated. */
   {
     unsigned char present[256];
-    print_domain_values_ushort(input_short, max1*max2*max3, present);
+    print_domain_values_ushort(input_short, height*width*depth, present);
     if (knee == 0) {
       if (!require_label(present, label_wm, "--lw") ||
           !require_label(present, label_cortex, "--lc")) {
@@ -274,9 +274,9 @@ int main(int argc, char* argv[]) {
   }
 
   if (knee == 1) {
-    EdgeDetect3D_knee(input, max1, max2, max3);
+    EdgeDetect3D_knee(input, height, width, depth);
   } else {
-    compute_boundary_cortex3D(input_short,max1, max2, max3, label_wm, label_cortex);
+    compute_boundary_cortex3D(input_short,height, width, depth, label_wm, label_cortex);
   }
 
   /* After boundary processing the band is labeled 2 (cortex mode relabels the
@@ -286,85 +286,85 @@ int main(int argc, char* argv[]) {
      --lw/--lc values. */
   label_cortex = 2;
 
-  for (i=0;i<max1*max2*max3;i++) {
+  for (i=0;i<height*width*depth;i++) {
     input[i] = (unsigned char)input_short[i];
   }
   free(input_short);
 
   if (thickness_DT == 0) {
 
-    laplacefield = (float***)malloc(sizeof(float**)*max3);
-    for (k=0;k<max3;k++) {
-      laplacefield[k] = (float**)malloc(sizeof(float*)*max1);
+    laplacefield = (float***)malloc(sizeof(float**)*depth);
+    for (k=0;k<depth;k++) {
+      laplacefield[k] = (float**)malloc(sizeof(float*)*height);
     }
-    for (k=0;k<max3;k++) {
-      for (i=0;i<max1;i++) {
-	laplacefield[k][i] = (float*)malloc(sizeof(float)*max2);
+    for (k=0;k<depth;k++) {
+      for (i=0;i<height;i++) {
+	laplacefield[k][i] = (float*)malloc(sizeof(float)*width);
       }
     }
 
     printf("Entering in laplacian3D\n");
-    if ( laplace3D_voxelsize(input, max1, max2, max3, laplacefield, iterations_laplace, hx, hy, hz, lambda) == 1 ) {
+    if ( laplace3D_voxelsize(input, height, width, depth, laplacefield, iterations_laplace, hx, hy, hz, lambda) == 1 ) {
       printf("Error in thickness3D\n");
     }
-    /*if ( laplace3D(input, max1, max2, max3, laplacefield, iterations_laplace, lambda) == 1 ) {
+    /*if ( laplace3D(input, height, width, depth, laplacefield, iterations_laplace, lambda) == 1 ) {
       printf("Error in thickness3D\n");
       }*/
 
     if (debug == 1) {
       printf("Writing domain domain_modificado3d.vol\n");
       fp=fopen("domain_modificado3d.vol","w");
-      fwrite(input,sizeof(unsigned char),max1*max2*max3,fp);    
+      fwrite(input,sizeof(unsigned char),height*width*depth,fp);    
       fclose(fp);
 
       printf("Writing ouput laplacefile.volf\n");  
       fp = fopen("laplacefile.volf","w");
-      for (k=0;k<max3;k++) {
-	for (i=0;i<max1;i++) {
-	  fwrite(laplacefield[k][i],sizeof(float),max2,fp);    
+      for (k=0;k<depth;k++) {
+	for (i=0;i<height;i++) {
+	  fwrite(laplacefield[k][i],sizeof(float),width,fp);    
 	}
       }
       fclose(fp);       
     }
 
     /* Reserve memory for maps and gradients*/
-    maps = (float*)malloc(sizeof(float)*max1*max2*max3);
-    gradientx = (float***)malloc(sizeof(float**)*max3);
-    for (k=0;k<max3;k++) {
-      gradientx[k] = (float**)malloc(sizeof(float*)*max1);
+    maps = (float*)malloc(sizeof(float)*height*width*depth);
+    gradientx = (float***)malloc(sizeof(float**)*depth);
+    for (k=0;k<depth;k++) {
+      gradientx[k] = (float**)malloc(sizeof(float*)*height);
     }
-    for (k=0;k<max3;k++) {
-      for (i=0;i<max1;i++) {
-	gradientx[k][i] = (float*)malloc(sizeof(float)*max2);
+    for (k=0;k<depth;k++) {
+      for (i=0;i<height;i++) {
+	gradientx[k][i] = (float*)malloc(sizeof(float)*width);
       }
     }
     
-    gradienty = (float***)malloc(sizeof(float**)*max3);
-    for (k=0;k<max3;k++) {
-      gradienty[k] = (float**)malloc(sizeof(float*)*max1);
+    gradienty = (float***)malloc(sizeof(float**)*depth);
+    for (k=0;k<depth;k++) {
+      gradienty[k] = (float**)malloc(sizeof(float*)*height);
     }
-    for (k=0;k<max3;k++) {
-      for (i=0;i<max1;i++) {
-	gradienty[k][i] = (float*)malloc(sizeof(float)*max2);
+    for (k=0;k<depth;k++) {
+      for (i=0;i<height;i++) {
+	gradienty[k][i] = (float*)malloc(sizeof(float)*width);
       }
     }
 
-    gradientz = (float***)malloc(sizeof(float**)*max3);
-    for (k=0;k<max3;k++) {
-      gradientz[k] = (float**)malloc(sizeof(float*)*max1);
+    gradientz = (float***)malloc(sizeof(float**)*depth);
+    for (k=0;k<depth;k++) {
+      gradientz[k] = (float**)malloc(sizeof(float*)*height);
     }
-    for (k=0;k<max3;k++) {
-      for (i=0;i<max1;i++) {
-	gradientz[k][i] = (float*)malloc(sizeof(float)*max2);
+    for (k=0;k<depth;k++) {
+      for (i=0;i<height;i++) {
+	gradientz[k][i] = (float*)malloc(sizeof(float)*width);
       }
     }
     
     printf("Doing gradients \n");
-    iGradX3D(laplacefield, gradientx, max2, max1, max3, hx);
-    iGradY3D(laplacefield, gradienty, max2, max1, max3, hy);
-    iGradZ3D(laplacefield, gradientz, max2, max1, max3, hz);
+    iGradX3D(laplacefield, gradientx, width, height, depth, hx);
+    iGradY3D(laplacefield, gradienty, width, height, depth, hy);
+    iGradZ3D(laplacefield, gradientz, width, height, depth, hz);
 
-    normalize3D(gradientx,gradienty,gradientz,max1,max2,max3);
+    normalize3D(gradientx,gradienty,gradientz,height,width,depth);
   
     /* CODIGO DE CONTROL */
     if (debug == 1) {
@@ -373,9 +373,9 @@ int main(int argc, char* argv[]) {
 	fprintf(stderr,"Failed writing gradientX.volf\n");
 	exit(1); 
       } 
-      for (k=0;k<max3;k++) {
-	for (i=0;i<max1;i++) {
-	  fwrite(gradientx[k][i],sizeof(float),max2,fp);    
+      for (k=0;k<depth;k++) {
+	for (i=0;i<height;i++) {
+	  fwrite(gradientx[k][i],sizeof(float),width,fp);    
 	}
       }
       fclose(fp); 
@@ -385,9 +385,9 @@ int main(int argc, char* argv[]) {
 	fprintf(stderr,"Failed writing gradientY.volf\n");
 	exit(1); 
       } 
-      for (k=0;k<max3;k++) {
-	for (i=0;i<max1;i++) {
-	  fwrite(gradienty[k][i],sizeof(float),max2,fp);    
+      for (k=0;k<depth;k++) {
+	for (i=0;i<height;i++) {
+	  fwrite(gradienty[k][i],sizeof(float),width,fp);    
 	}
       }
       fclose(fp);
@@ -397,9 +397,9 @@ int main(int argc, char* argv[]) {
 	fprintf(stderr,"Failed writing gradientZ.volf\n");
 	exit(1); 
       } 
-      for (k=0;k<max3;k++) {
-	for (i=0;i<max1;i++) {
-	  fwrite(gradientz[k][i],sizeof(float),max2,fp);    
+      for (k=0;k<depth;k++) {
+	for (i=0;i<height;i++) {
+	  fwrite(gradientz[k][i],sizeof(float),width,fp);    
 	}
       }
       fclose(fp);
@@ -410,42 +410,42 @@ int main(int argc, char* argv[]) {
     gettimeofday(&endinit,NULL);
     if (suma == 0) {
       if (reverse == 0) {
-	if ( thickness3DYezzi(input, max1, max2, max3, maps, laplacefield, gradientx, gradienty, gradientz, num_it,hx,hy,hz) == 1 ) {
+	if ( thickness3DYezzi(input, height, width, depth, maps, laplacefield, gradientx, gradienty, gradientz, num_it,hx,hy,hz) == 1 ) {
 	  printf("Error in thickness3D\n");
 	}
       } else {
-	if ( thickness3DYezzi_reverse(input, max1, max2, max3,  maps, laplacefield, gradientx, gradienty, gradientz, num_it,hx,hy,hz) == 1 ) {
+	if ( thickness3DYezzi_reverse(input, height, width, depth,  maps, laplacefield, gradientx, gradienty, gradientz, num_it,hx,hy,hz) == 1 ) {
 	  printf("Error in thickness3D\n");
 	}
       }
     }
 
     if (suma == 1) {
-      maps_reverse = (float*)malloc(sizeof(float)*max1*max2*max3);
-      if ( thickness3DYezzi(input, max1, max2, max3, maps, laplacefield, gradientx, gradienty, gradientz, num_it,hx,hy,hz) == 1 ) {
+      maps_reverse = (float*)malloc(sizeof(float)*height*width*depth);
+      if ( thickness3DYezzi(input, height, width, depth, maps, laplacefield, gradientx, gradienty, gradientz, num_it,hx,hy,hz) == 1 ) {
 	printf("Error in thickness3D\n");
       }
-      if ( thickness3DYezzi_reverse(input, max1, max2, max3,  maps_reverse, laplacefield, gradientx, gradienty, gradientz, num_it,hx,hy,hz) == 1 ) {
+      if ( thickness3DYezzi_reverse(input, height, width, depth,  maps_reverse, laplacefield, gradientx, gradienty, gradientz, num_it,hx,hy,hz) == 1 ) {
 	printf("Error in thickness3D\n");
       }
-      relabel_float(maps,max1*max2*max3,-1,0);
-      relabel_float(maps_reverse,max1*max2*max3,-1,0);
-      sumar_l1l2(maps,maps_reverse,maps,max1*max2*max3);     
+      relabel_float(maps,height*width*depth,-1,0);
+      relabel_float(maps_reverse,height*width*depth,-1,0);
+      sumar_l1l2(maps,maps_reverse,maps,height*width*depth);     
       free(maps_reverse);
     }
 
-    relabel_float(maps,max1*max2*max3,-1,0);
+    relabel_float(maps,height*width*depth,-1,0);
     printf("Writing output %s:\n",outputfile);
     fp=fopen(outputfile,"w"); 
     if (fp == NULL) { 
       fprintf(stderr,"Failed writing %s\n",outputfile);
       return 1; 
     } 
-    fwrite(maps,sizeof(float),max1*max2*max3,fp);    
+    fwrite(maps,sizeof(float),height*width*depth,fp);    
     fclose(fp);
     
-    for (k=0;k<max3;k++) {
-      for (i=0;i<max1;i++) {
+    for (k=0;k<depth;k++) {
+      for (i=0;i<height;i++) {
 	free(laplacefield[k][i]);
 	free(gradientx[k][i]);
 	free(gradienty[k][i]);
@@ -462,28 +462,28 @@ int main(int argc, char* argv[]) {
     free(gradientz);
   } else {
     dist_maps = (float**)malloc(sizeof(float*)*3);
-    dist_maps[0] = (float*)malloc(sizeof(float)*max1*max2*max3);    
-    dist_maps[1] = (float*)malloc(sizeof(float)*max1*max2*max3);
-    dist_maps[2] = (float*)malloc(sizeof(float)*max1*max2*max3);
+    dist_maps[0] = (float*)malloc(sizeof(float)*height*width*depth);    
+    dist_maps[1] = (float*)malloc(sizeof(float)*height*width*depth);
+    dist_maps[2] = (float*)malloc(sizeof(float)*height*width*depth);
    
     if (suma == 0) {
       if (reverse == 1) {
-	DToptimo3d(input, max1, max2, max3, 1, dist_maps, 1, 2, debug, hx,hy,hz);
+	DToptimo3d(input, height, width, depth, 1, dist_maps, 1, 2, debug, hx,hy,hz);
       } else {
-	DToptimo3d(input, max1, max2, max3, 1, dist_maps, 0, 2, debug, hx,hy,hz);
+	DToptimo3d(input, height, width, depth, 1, dist_maps, 0, 2, debug, hx,hy,hz);
       }
-      relabel_float(dist_maps[2],max1*max2*max3,999999,0);
+      relabel_float(dist_maps[2],height*width*depth,999999,0);
     }
     if ( suma == 1) { 
        dist_maps_reverse = (float**)malloc(sizeof(float*)*3);
-       dist_maps_reverse[0] = (float*)malloc(sizeof(float)*max1*max2*max3);    
-       dist_maps_reverse[1] = (float*)malloc(sizeof(float)*max1*max2*max3);
-       dist_maps_reverse[2] = (float*)malloc(sizeof(float)*max1*max2*max3);
-       DToptimo3d(input, max1, max2, max3, 1, dist_maps, 1, 2, debug, hx,hy,hz);
-       DToptimo3d(input, max1, max2, max3, 1, dist_maps_reverse, 0, 2, debug, hx,hy,hz);
-       relabel_float(dist_maps[2],max1*max2*max3,999999,0);
-       relabel_float(dist_maps_reverse[2],max1*max2*max3,999999,0);
-       sumar_l1l2(dist_maps[2],dist_maps_reverse[2],dist_maps[2],max1*max2*max3); 
+       dist_maps_reverse[0] = (float*)malloc(sizeof(float)*height*width*depth);    
+       dist_maps_reverse[1] = (float*)malloc(sizeof(float)*height*width*depth);
+       dist_maps_reverse[2] = (float*)malloc(sizeof(float)*height*width*depth);
+       DToptimo3d(input, height, width, depth, 1, dist_maps, 1, 2, debug, hx,hy,hz);
+       DToptimo3d(input, height, width, depth, 1, dist_maps_reverse, 0, 2, debug, hx,hy,hz);
+       relabel_float(dist_maps[2],height*width*depth,999999,0);
+       relabel_float(dist_maps_reverse[2],height*width*depth,999999,0);
+       sumar_l1l2(dist_maps[2],dist_maps_reverse[2],dist_maps[2],height*width*depth); 
        free(dist_maps_reverse);
     }
 
@@ -493,7 +493,7 @@ int main(int argc, char* argv[]) {
       fprintf(stderr,"Failed writing %s\n",outputfile);
       return 1; 
     }
-    fwrite(dist_maps[2],sizeof(float),max1*max2*max3,fp);    
+    fwrite(dist_maps[2],sizeof(float),height*width*depth,fp);    
     fclose(fp);
   }
   
@@ -502,23 +502,23 @@ int main(int argc, char* argv[]) {
     if (suma == 0) {
       if (thickness_DT == 0) {
 	if (reverse) { 
-	  mean = compute_mean_thickness(input,maps,label_cortex,0,max1,max2,max3,&sigma);
+	  mean = compute_mean_thickness(input,maps,label_cortex,0,height,width,depth,&sigma);
 	} else {
-	  mean = compute_mean_thickness(input,maps,label_cortex,1,max1,max2,max3,&sigma);
+	  mean = compute_mean_thickness(input,maps,label_cortex,1,height,width,depth,&sigma);
 	} 
       } else {
 	if (reverse) { 
-	  mean = compute_mean_thickness(input,dist_maps[2],label_cortex,0,max1,max2,max3,&sigma);
+	  mean = compute_mean_thickness(input,dist_maps[2],label_cortex,0,height,width,depth,&sigma);
 	} else {
-	  mean = compute_mean_thickness(input,dist_maps[2],label_cortex,1,max1,max2,max3,&sigma);
+	  mean = compute_mean_thickness(input,dist_maps[2],label_cortex,1,height,width,depth,&sigma);
 	}
       }
       printf("Mean thickness in the surface boundary = %f std = %f\n",mean,sigma);
     } else {
       if (thickness_DT == 0) {
-	mean = compute_mean_thickness_volume(input,maps,label_cortex,max1,max2,max3,&sigma); 
+	mean = compute_mean_thickness_volume(input,maps,label_cortex,height,width,depth,&sigma); 
       }	else {
-	mean = compute_mean_thickness_volume(input,dist_maps[2],label_cortex,max1,max2,max3,&sigma); 
+	mean = compute_mean_thickness_volume(input,dist_maps[2],label_cortex,height,width,depth,&sigma); 
       }
       printf("Mean thickness in the volume boundary = %f std = %f\n",mean,sigma);
       

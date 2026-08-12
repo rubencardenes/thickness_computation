@@ -59,7 +59,7 @@ int maximo(int a,int b) {
   }
 }
 
-float distanceYezzi_reverse_orig(float **gradientx,float **gradienty,int newmapindex, int x, int y,float *maps,int max2, float r,float hx, float hy) {
+float distanceYezzi_reverse_orig(float **gradientx,float **gradienty,int newmapindex, int x, int y,float *maps,int width, float r,float hx, float hy) {
   float distf;
 
   if (gradientx[y][x] > 0) { 
@@ -84,19 +84,19 @@ float distanceYezzi_reverse_orig(float **gradientx,float **gradienty,int newmapi
     }
   }
   if (gradienty[y][x] > 0) {
-    if (maps[newmapindex+max2] == -1 && fabs(gradienty[y][x]) > r ) {
+    if (maps[newmapindex+width] == -1 && fabs(gradienty[y][x]) > r ) {
       return -1;
     } else {
-      if (maps[newmapindex+max2] > -1) { 
-	distf += fabs(gradienty[y][x])*maps[newmapindex+max2]/hy;
+      if (maps[newmapindex+width] > -1) { 
+	distf += fabs(gradienty[y][x])*maps[newmapindex+width]/hy;
       }
     }
   } else {
-    if (maps[newmapindex-max2] == -1 && fabs(gradienty[y][x]) > r ) {
+    if (maps[newmapindex-width] == -1 && fabs(gradienty[y][x]) > r ) {
       return -1;
     } else {
-      if (maps[newmapindex-max2] > -1) { 
-	distf += fabs(gradienty[y][x])*maps[newmapindex-max2]/hy;
+      if (maps[newmapindex-width] > -1) { 
+	distf += fabs(gradienty[y][x])*maps[newmapindex-width]/hy;
       }
     }
   }
@@ -104,7 +104,7 @@ float distanceYezzi_reverse_orig(float **gradientx,float **gradienty,int newmapi
   return distf;
 }
 
-float distanceYezzi_orig(float **gradientx,float **gradienty,int newmapindex,int x, int y,float *maps,int max2,float r,float hx, float hy) {
+float distanceYezzi_orig(float **gradientx,float **gradienty,int newmapindex,int x, int y,float *maps,int width,float r,float hx, float hy) {
   float distf;
   if (gradientx[y][x] < 0) { 	      
     if (maps[newmapindex+1] == -1 && fabs(gradientx[y][x]) > r) {
@@ -128,19 +128,19 @@ float distanceYezzi_orig(float **gradientx,float **gradienty,int newmapindex,int
     }
   }
   if (gradienty[y][x] < 0) {
-    if (maps[newmapindex+max2] == -1 && fabs(gradienty[y][x]) > r) {
+    if (maps[newmapindex+width] == -1 && fabs(gradienty[y][x]) > r) {
       return -1;
     } else {
-      if (maps[newmapindex+max2] > -1) {
-	distf += fabs(gradienty[y][x])*maps[newmapindex+max2]/hy;
+      if (maps[newmapindex+width] > -1) {
+	distf += fabs(gradienty[y][x])*maps[newmapindex+width]/hy;
       }
     }
   } else {
-    if (maps[newmapindex-max2] == -1 && fabs(gradienty[y][x]) > r) {
+    if (maps[newmapindex-width] == -1 && fabs(gradienty[y][x]) > r) {
       return -1;
     } else {
-      if (maps[newmapindex-max2] > -1) {
-	distf += fabs(gradienty[y][x])*maps[newmapindex-max2]/hy;
+      if (maps[newmapindex-width] > -1) {
+	distf += fabs(gradienty[y][x])*maps[newmapindex-width]/hy;
       }
     }
   }
@@ -148,7 +148,7 @@ float distanceYezzi_orig(float **gradientx,float **gradienty,int newmapindex,int
   return distf;
 }
 
-float distanceYezzi_reverse(float **gradientx,float **gradienty,int newmapindex, int x, int y,float *maps,int max2, float r,float hx, float hy) {
+float distanceYezzi_reverse(float **gradientx,float **gradienty,int newmapindex, int x, int y,float *maps,int width, float r,float hx, float hy) {
   float distf;
 
   if (gradientx[y][x] > 0) { 
@@ -165,19 +165,19 @@ float distanceYezzi_reverse(float **gradientx,float **gradienty,int newmapindex,
 	}
   }
   if (gradienty[y][x] > 0) {
-	if (maps[newmapindex+max2] > -1) { 
-	  distf += fabs(gradienty[y][x])*maps[newmapindex+max2]/hy;
+	if (maps[newmapindex+width] > -1) { 
+	  distf += fabs(gradienty[y][x])*maps[newmapindex+width]/hy;
 	}
   } else {
-	if (maps[newmapindex-max2] > -1) { 
-	  distf += fabs(gradienty[y][x])*maps[newmapindex-max2]/hy;
+	if (maps[newmapindex-width] > -1) { 
+	  distf += fabs(gradienty[y][x])*maps[newmapindex-width]/hy;
 	}
   }
   distf = distf/(fabs(gradientx[y][x])/hx + fabs(gradienty[y][x])/hy);
   return distf;
 }
 
-float distanceYezzi(float **gradientx,float **gradienty,int newmapindex,int x, int y,float *maps,int max2,float r,float hx, float hy) {
+float distanceYezzi(float **gradientx,float **gradienty,int newmapindex,int x, int y,float *maps,int width,float r,float hx, float hy) {
   float distf;
   if (gradientx[y][x] < 0) {
 	if (maps[newmapindex+1] == -1) {
@@ -193,12 +193,12 @@ float distanceYezzi(float **gradientx,float **gradienty,int newmapindex,int x, i
 	}
   }
   if (gradienty[y][x] < 0) {
-	if (maps[newmapindex+max2] > -1) {
-	  distf += fabs(gradienty[y][x])*maps[newmapindex+max2]/hy;
+	if (maps[newmapindex+width] > -1) {
+	  distf += fabs(gradienty[y][x])*maps[newmapindex+width]/hy;
 	}
   } else {
-	if (maps[newmapindex-max2] > -1) {
-	  distf += fabs(gradienty[y][x])*maps[newmapindex-max2]/hy;
+	if (maps[newmapindex-width] > -1) {
+	  distf += fabs(gradienty[y][x])*maps[newmapindex-width]/hy;
 	}
   }
   distf = distf/(fabs(gradientx[y][x])/hx + fabs(gradienty[y][x])/hy);
@@ -206,7 +206,7 @@ float distanceYezzi(float **gradientx,float **gradienty,int newmapindex,int x, i
 }
 
 
-int thickness2DYezzi(unsigned char* prototypes,int max1, int max2, float *maps, float** laplacefield,float** gradientx, float** gradienty, int num_it, float hx, float hy, unsigned char label_cortex, int debug) {
+int thickness2DYezzi(unsigned char* prototypes,int height, int width, float *maps, float** laplacefield,float** gradientx, float** gradienty, int num_it, float hx, float hy, unsigned char label_cortex, int debug) {
   int i,j,x,y,xr,yr,mapindex,newmapindex,aux,d,l,flag;
   int *index_aux;
   float distf,r;
@@ -218,9 +218,9 @@ int thickness2DYezzi(unsigned char* prototypes,int max1, int max2, float *maps, 
   int max_number_in_list = 50000;
   unsigned char* prot_copia;
   
-  prot_copia = (unsigned char*)malloc(sizeof(unsigned char)*max1*max2);
+  prot_copia = (unsigned char*)malloc(sizeof(unsigned char)*height*width);
 
-  for (j=0;j<max1*max2;j++) {
+  for (j=0;j<height*width;j++) {
     maps[j] = -1;
     prot_copia[j] = prototypes[j];
   }
@@ -244,7 +244,7 @@ int thickness2DYezzi(unsigned char* prototypes,int max1, int max2, float *maps, 
 	if (debug == 1) {
       printf("iteration %d\n",l);
 	}
-    for (i=0;i<max1*max2;i++) {
+    for (i=0;i<height*width;i++) {
       prot_copia[i] = prototypes[i]; /* to recover the domain after the first iteration */
       if (prot_copia[i] == 0) {
 	     if (list1.num_elem >= max_number_in_list) {
@@ -267,13 +267,13 @@ int thickness2DYezzi(unsigned char* prototypes,int max1, int max2, float *maps, 
 	    for (x=-1;x<2;x++) {
 	      for (y=-1;y<2;y++) {
 	        if (x==0 && y ==0) continue;
-	        newmapindex = mapindex + x + y*max2;
-	        xr = maptox(newmapindex,max2);
-	        yr = maptoy(newmapindex,max2);
-	        if (xr < 0 || xr >= max2 || yr < 0 || yr >= max1) continue;
+	        newmapindex = mapindex + x + y*width;
+	        xr = maptox(newmapindex,width);
+	        yr = maptoy(newmapindex,width);
+	        if (xr < 0 || xr >= width || yr < 0 || yr >= height) continue;
 	        if (prot_copia[newmapindex] == label_cortex) {
 	          /* Compute new distance */
-	          distf = distanceYezzi(gradientx,gradienty,newmapindex,xr,yr,maps,max2,0.00,hx,hy);
+	          distf = distanceYezzi(gradientx,gradienty,newmapindex,xr,yr,maps,width,0.00,hx,hy);
 
 	          if (distf > 0) {
 		        maps[newmapindex] = distf;
@@ -308,13 +308,13 @@ int thickness2DYezzi(unsigned char* prototypes,int max1, int max2, float *maps, 
 	  for (x=-1;x<2;x++) {
 	    for (y=-1;y<2;y++) {
 	      if (x==0 && y ==0) continue;
-	      newmapindex = mapindex + x + y*max2;
-	      xr = maptox(newmapindex,max2);
-	      yr = maptoy(newmapindex,max2);
-	      if (xr < 0 || xr >= max2 || yr < 0 || yr >= max1) continue;
+	      newmapindex = mapindex + x + y*width;
+	      xr = maptox(newmapindex,width);
+	      yr = maptoy(newmapindex,width);
+	      if (xr < 0 || xr >= width || yr < 0 || yr >= height) continue;
 	      if (prot_copia[newmapindex] == label_cortex) {
 	        /* Compute new distance */
-	        distf = distanceYezzi(gradientx,gradienty,newmapindex,xr,yr,maps,max2,r,hx,hy);
+	        distf = distanceYezzi(gradientx,gradienty,newmapindex,xr,yr,maps,width,r,hx,hy);
 
 	        if (distf > 0) {
 		  maps[newmapindex] = distf;
@@ -353,7 +353,7 @@ int thickness2DYezzi(unsigned char* prototypes,int max1, int max2, float *maps, 
   return 0; /* success */
 }
 
-int thickness2DYezzi_reverse(unsigned char* prototypes,int max1, int max2, float *maps, float** laplacefield,float** gradientx, float** gradienty, int num_it, float hx, float hy, unsigned char label_cortex, int debug) {
+int thickness2DYezzi_reverse(unsigned char* prototypes,int height, int width, float *maps, float** laplacefield,float** gradientx, float** gradienty, int num_it, float hx, float hy, unsigned char label_cortex, int debug) {
   int i,j,x,y,xr,yr,mapindex,newmapindex,aux,d,flag,l;
   int *index_aux;
   float distf,r;
@@ -365,9 +365,9 @@ int thickness2DYezzi_reverse(unsigned char* prototypes,int max1, int max2, float
   int max_number_in_list = 50000;
   unsigned char* prot_copia;
   
-  prot_copia = (unsigned char*)malloc(sizeof(unsigned char)*max1*max2);
+  prot_copia = (unsigned char*)malloc(sizeof(unsigned char)*height*width);
 
-  for (j=0;j<max1*max2;j++) {
+  for (j=0;j<height*width;j++) {
     maps[j] = -1;
     prot_copia[j] = prototypes[j];
   }
@@ -391,7 +391,7 @@ int thickness2DYezzi_reverse(unsigned char* prototypes,int max1, int max2, float
 	if (debug == 1) {
       printf("iteration %d\n",l);
 	}
-    for (i=0;i<max1*max2;i++) {
+    for (i=0;i<height*width;i++) {
       prot_copia[i] = prototypes[i]; /* to recover the domain after the first iteration */
       if (prot_copia[i] == 1) {
 	if (list1.num_elem >= max_number_in_list) {
@@ -415,13 +415,13 @@ int thickness2DYezzi_reverse(unsigned char* prototypes,int max1, int max2, float
 	for (x=-1;x<2;x++) {
 	  for (y=-1;y<2;y++) {
 	    if (x==0 && y ==0) continue;
-	    newmapindex = mapindex + x + y*max2;
-	    xr = maptox(newmapindex,max2);
-	    yr = maptoy(newmapindex,max2);
-	    if (xr < 0 || xr >= max2 || yr < 0 || yr >= max1) continue;
+	    newmapindex = mapindex + x + y*width;
+	    xr = maptox(newmapindex,width);
+	    yr = maptoy(newmapindex,width);
+	    if (xr < 0 || xr >= width || yr < 0 || yr >= height) continue;
 	    if (prot_copia[newmapindex] == label_cortex) {
 	      /* Compute new distance */
-	      distf = distanceYezzi_reverse(gradientx,gradienty,newmapindex,xr,yr,maps,max2,0.000,hx,hy);
+	      distf = distanceYezzi_reverse(gradientx,gradienty,newmapindex,xr,yr,maps,width,0.000,hx,hy);
 
 	      if (distf > 0) {
 		flag = 1;
@@ -456,13 +456,13 @@ int thickness2DYezzi_reverse(unsigned char* prototypes,int max1, int max2, float
 	for (x=-1;x<2;x++) {
 	  for (y=-1;y<2;y++) {
 	    if (x==0 && y ==0) continue;
-	    newmapindex = mapindex + x + y*max2;
-	    xr = maptox(newmapindex,max2);
-	    yr = maptoy(newmapindex,max2);
-	    if (xr < 0 || xr >= max2 || yr < 0 || yr >= max1) continue;
+	    newmapindex = mapindex + x + y*width;
+	    xr = maptox(newmapindex,width);
+	    yr = maptoy(newmapindex,width);
+	    if (xr < 0 || xr >= width || yr < 0 || yr >= height) continue;
 	    if (prot_copia[newmapindex] == label_cortex) {
 	      /* Compute new distance */
-	      distf = distanceYezzi_reverse(gradientx,gradienty,newmapindex,xr,yr,maps,max2,r,hx,hy);
+	      distf = distanceYezzi_reverse(gradientx,gradienty,newmapindex,xr,yr,maps,width,r,hx,hy);
 
 	      if (distf > 0) {
 		maps[newmapindex] = distf;
@@ -502,7 +502,7 @@ int thickness2DYezzi_reverse(unsigned char* prototypes,int max1, int max2, float
   return 0; /* success */
 }
 
-float getnewcoordinates(int *newx,int *newy,int x,int y,int max2, float gradientx,float gradienty,float *angle_error) {
+float getnewcoordinates(int *newx,int *newy,int x,int y,int width, float gradientx,float gradienty,float *angle_error) {
   double theta,newtheta,dy,dx;
   float new_angle_error = 0;
   theta = acos((double)gradientx);
@@ -510,7 +510,7 @@ float getnewcoordinates(int *newx,int *newy,int x,int y,int max2, float gradient
     theta = 2 * PI - theta;
   }
 
-  newtheta = theta + angle_error[y*max2+x];
+  newtheta = theta + angle_error[y*width+x];
   dy = sin(newtheta);
   dx = cos(newtheta);
 
@@ -519,31 +519,31 @@ float getnewcoordinates(int *newx,int *newy,int x,int y,int max2, float gradient
       (*newx) = x; 
       (*newy) = y-1; 
       new_angle_error = newtheta - PI / 2;
-      /* angle_error[(*newx)+(*newy)*max2] = newtheta - PI / 2;*/
+      /* angle_error[(*newx)+(*newy)*width] = newtheta - PI / 2;*/
     } 
     if (dx >= 0.9238) { /*theta -> (0,PI/8) */
       (*newx) = x+1;
       (*newy) = y;
       new_angle_error = newtheta;
-      /* angle_error[(*newx)+(*newy)*max2] = newtheta;*/
+      /* angle_error[(*newx)+(*newy)*width] = newtheta;*/
     }
     if (dx <= -0.9238) { /*theta -> (7PI/8,PI) */
       (*newx) = x-1;
       (*newy) = y;
       new_angle_error = newtheta - PI;
-      /* angle_error[(*newx)+(*newy)*max2] = newtheta - PI;*/
+      /* angle_error[(*newx)+(*newy)*width] = newtheta - PI;*/
     }
     if (dx <= 0.9238 && dx >= 0.3826) { /*theta -> (PI/8,3PI/8) */
       (*newx) = x+1;
       (*newy) = y-1;
       new_angle_error = newtheta - PI / 4;
-      /* angle_error[(*newx)+(*newy)*max2] = newtheta - PI / 4; */
+      /* angle_error[(*newx)+(*newy)*width] = newtheta - PI / 4; */
     }
     if (dx >= -0.9238 && dx <= -0.3826) { /*theta -> (5PI/8,7PI/8) */
       (*newx) = x-1;
       (*newy) = y-1;
       new_angle_error = newtheta - 3*PI / 4;
-     /* angle_error[(*newx)+(*newy)*max2] = newtheta - 3*PI / 4; */
+     /* angle_error[(*newx)+(*newy)*width] = newtheta - 3*PI / 4; */
     }
   }
   if (dy <0) {
@@ -551,38 +551,38 @@ float getnewcoordinates(int *newx,int *newy,int x,int y,int max2, float gradient
       (*newx) = x;
       (*newy) = y+1;
       new_angle_error = newtheta - 3*PI / 2;
-      /* angle_error[(*newx)+(*newy)*max2] = newtheta - 3*PI / 2; */
+      /* angle_error[(*newx)+(*newy)*width] = newtheta - 3*PI / 2; */
     }
     if (dx >= 0.9238) {
       (*newx) = x+1;
       (*newy) = y;
       new_angle_error = newtheta;
-      /* angle_error[(*newx)+(*newy)*max2] = newtheta; */
+      /* angle_error[(*newx)+(*newy)*width] = newtheta; */
     }
     if (dx <= -0.9238) {
       (*newx) = x-1;
       (*newy) = y;
       new_angle_error = newtheta - PI;
-      /* angle_error[(*newx)+(*newy)*max2] = newtheta - PI;*/
+      /* angle_error[(*newx)+(*newy)*width] = newtheta - PI;*/
     }
     if (dx <= 0.9238 && dx >= 0.3826) {
       (*newx) = x+1;
       (*newy) = y+1;
       new_angle_error = newtheta -  7*PI / 4;
-      /* angle_error[(*newx)+(*newy)*max2] = newtheta - 7*PI / 4; */
+      /* angle_error[(*newx)+(*newy)*width] = newtheta - 7*PI / 4; */
     }
     if (dx >= -0.9238 && dx <= -0.3826) {
       (*newx) = x-1;
       (*newy) = y+1; 
       new_angle_error = newtheta - 5*PI / 4;
-      /* angle_error[(*newx)+(*newy)*max2] = newtheta - 5*PI / 4; */
+      /* angle_error[(*newx)+(*newy)*width] = newtheta - 5*PI / 4; */
     }
   }
 
   return new_angle_error;
 }
 
-int thickness2Dgradient(unsigned char* prototypes,int max1, int max2, float *input_maps,
+int thickness2Dgradient(unsigned char* prototypes,int height, int width, float *input_maps,
 			float* maps, float** laplacefield, float** gradientx, float** gradienty) {
   int i,j,x,y,xr,yr,newx,newy,provx,provy,mapindex,newmapindex,provmapindex,aux,d;
   int *index_aux;
@@ -597,8 +597,8 @@ int thickness2Dgradient(unsigned char* prototypes,int max1, int max2, float *inp
   struct list list2,list3;
   int max_number_in_list = 50000;
 
-  angle_error = (float*)malloc(sizeof(float)*max1*max2);
-  for (j=0;j<max1*max2;j++) {
+  angle_error = (float*)malloc(sizeof(float)*height*width);
+  for (j=0;j<height*width;j++) {
     maps[j] = -1;
     angle_error[j] = 0;
   }
@@ -612,10 +612,10 @@ int thickness2Dgradient(unsigned char* prototypes,int max1, int max2, float *inp
   list3.elem = (int*)malloc(sizeof(int)*max_number_in_list);
   list3.num_elem = 0;
 
-  for (i=0;i<max1*max2;i=i+10) {
+  for (i=0;i<height*width;i=i+10) {
     if (prototypes[i] == 2 &&
 	(prototypes[i+1] == 0 || prototypes[i-1] == 0 ||
-	 prototypes[i+max2] == 0 || prototypes[i-max2] == 0) ) {
+	 prototypes[i+width] == 0 || prototypes[i-width] == 0) ) {
       if (list1.num_elem >= max_number_in_list) {
 	printf("Error list1.num_elem >= %d\n",max_number_in_list);
 	return 1;
@@ -633,10 +633,10 @@ int thickness2Dgradient(unsigned char* prototypes,int max1, int max2, float *inp
     for (i=0;i<list1.num_elem;i++) {    
       /* Get element from list1 */
       mapindex = list1.elem[i];
-      x = maptox(mapindex,max2);
-      y = maptoy(mapindex,max2);      
-      new_angle_error = getnewcoordinates(&newx,&newy,x,y,max2,gradientx[y][x],-gradienty[y][x],angle_error);
-      newmapindex = newy*max2+newx;
+      x = maptox(mapindex,width);
+      y = maptoy(mapindex,width);      
+      new_angle_error = getnewcoordinates(&newx,&newy,x,y,width,gradientx[y][x],-gradienty[y][x],angle_error);
+      newmapindex = newy*width+newx;
      
       angle_error[newmapindex] = new_angle_error;
       if (newmapindex == mapindex) {
@@ -660,15 +660,15 @@ int thickness2Dgradient(unsigned char* prototypes,int max1, int max2, float *inp
       for (x=-1;x<2;x++) {  
 	for (y=-1;y<2;y++) {
 	  if (x==0 && y ==0) continue;  
-	  newmapindex = mapindex + x + y*max2;  
+	  newmapindex = mapindex + x + y*width;  
 	  if (prototypes[newmapindex] == 2) {	      
-	    xr = maptox(mapindex,max2);  
-	    yr = maptoy(mapindex,max2);    
-	    newx = maptox(newmapindex,max2);
-	    newy = maptoy(newmapindex,max2);
-	    new_angle_error = getnewcoordinates(&provx,&provy,newx,newy,max2,-gradientx[newy][newx],gradienty[newy][newx],angle_error);
+	    xr = maptox(mapindex,width);  
+	    yr = maptoy(mapindex,width);    
+	    newx = maptox(newmapindex,width);
+	    newy = maptoy(newmapindex,width);
+	    new_angle_error = getnewcoordinates(&provx,&provy,newx,newy,width,-gradientx[newy][newx],gradienty[newy][newx],angle_error);
             hay que calcular el angulo de error en (newx,newy)
-	    provmapindex = provy*max2+provx; 
+	    provmapindex = provy*width+provx; 
 	    angle_error[newmapindex]=-new_angle_error;
 	    if (maps[provmapindex] == -1) {
 	      maps[newmapindex] = input_maps[newmapindex];
@@ -719,11 +719,11 @@ int thickness2Dgradient(unsigned char* prototypes,int max1, int max2, float *inp
    input label equals label_cortex). Non-finite map values (e.g. +inf left at a
    boundary pixel) are skipped. Returns the mean; *std gets the standard
    deviation and *npoints the number of band pixels averaged. */
-float compute_mean_thickness2D(unsigned char *input, float *maps, int label_cortex, int max1, int max2, int *npoints, float *std) {
+float compute_mean_thickness2D(unsigned char *input, float *maps, int label_cortex, int height, int width, int *npoints, float *std) {
   int i, n = 0;
   float mean = 0;
 
-  for (i=0; i<max1*max2; i++) {
+  for (i=0; i<height*width; i++) {
     if (input[i] == label_cortex && isfinite(maps[i])) {
       mean += maps[i];
       n++;
@@ -737,7 +737,7 @@ float compute_mean_thickness2D(unsigned char *input, float *maps, int label_cort
   mean = mean/(float)n;
 
   *std = 0;
-  for (i=0; i<max1*max2; i++) {
+  for (i=0; i<height*width; i++) {
     if (input[i] == label_cortex && isfinite(maps[i])) {
       *std += (mean - maps[i])*(mean - maps[i]);
     }

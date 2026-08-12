@@ -11,8 +11,6 @@ int main(int argc,char* argv[]) {
   unsigned char* input,*min_local;
   float **output;
   int i;
-  int max1 = 256;
-  int max2 = 256;
   int iterations = 10;
   float lambda = 0.5,h = 1.0;
   int cortex_label = 2;
@@ -33,53 +31,51 @@ int main(int argc,char* argv[]) {
     lambda = atof(argv[4]);
   }
 
-  /* Read the domain from a PNG; dimensions become max1 (rows) and max2 (cols). */
+  /* Read the domain from a PNG; dimensions become height (rows) and width (cols). */
   input = load_png_gray(inputfile, &width, &height);
   if (input == NULL) {
     exit(1);
   }
-  max2 = width;
-  max1 = height;
-  printf("Input %s: %d rows x %d cols\n", inputfile, max1, max2);
+  printf("Input %s: %d rows x %d cols\n", inputfile, height, width);
 
   /* Report the distinct label values in the domain. */
   {
     unsigned char present[256];
-    print_domain_values(input, max1*max2, present);
+    print_domain_values(input, height*width, present);
   }
 
-  output = (float**)malloc(sizeof(float*)*max1);
-  for (i=0;i<max1;i++) {
-    output[i] = (float*)malloc(sizeof(float)*max2);
+  output = (float**)malloc(sizeof(float*)*height);
+  for (i=0;i<height;i++) {
+    output[i] = (float*)malloc(sizeof(float)*width);
   }
 
   printf("Entering in EdgeDetect\n");
-  if ( EdgeDetect(input, max1, max2) == 1 ) {
+  if ( EdgeDetect(input, height, width) == 1 ) {
     printf("Error in EdgeDetect\n");
   }
 
   printf("Relabeling\n");
-  if ( relabel(input,max1*max2,1,100) != 0) {
+  if ( relabel(input,height*width,1,100) != 0) {
     printf("Error in Relabel\n");
   }
 
   printf("Writing domain domain_anillo_modificado.chr\n");
   fg=fopen("domain_anillo_modificado.chr","w");
   if (fg != NULL) {
-    fwrite(input,sizeof(unsigned char),max1*max2,fg);
+    fwrite(input,sizeof(unsigned char),height*width,fg);
     fclose(fg);
   } else {
     fprintf(stderr,"Failed writing domain_anillo_modificado.chr\n");
   }
 
   printf("Entering in poisson2D\n");
-  if ( poisson2D(input, max1, max2, output, iterations, lambda, 0, h, cortex_label) == 1 ) {
+  if ( poisson2D(input, height, width, output, iterations, lambda, 0, h, cortex_label) == 1 ) {
     printf("Error in poisson2D\n");
   }
 
-  min_local = (unsigned char*)malloc(sizeof(unsigned char)*max1*max2);
+  min_local = (unsigned char*)malloc(sizeof(unsigned char)*height*width);
   printf("Entering in min local detection\n");
-  if ( minimos_locales2D(output, min_local, max1, max2) == 1 ) {
+  if ( minimos_locales2D(output, min_local, height, width) == 1 ) {
     printf("Error in minimos_locales2D\n");
   }
 
@@ -87,11 +83,11 @@ int main(int argc,char* argv[]) {
   {
     /* Copy the row-pointer field into a contiguous buffer so it can be written
        as a raw float file or a min..max normalized (optionally colored) PNG. */
-    float *buf = (float*)malloc(sizeof(float)*max1*max2);
+    float *buf = (float*)malloc(sizeof(float)*height*width);
     int r,col,idx;
-    for (r=0;r<max1;r++) {
-      for (col=0;col<max2;col++) {
-        buf[r*max2+col] = output[r][col];
+    for (r=0;r<height;r++) {
+      for (col=0;col<width;col++) {
+        buf[r*width+col] = output[r][col];
       }
     }
     /* For the PNG visualization, show the field only on the solved region
@@ -99,11 +95,11 @@ int main(int argc,char* argv[]) {
        and are excluded from the min..max normalization; the raw .flt output
        keeps the full field. */
     if (png_has_extension(outputfile)) {
-      for (idx=0; idx<max1*max2; idx++) {
+      for (idx=0; idx<height*width; idx++) {
         if (input[idx] == 0) buf[idx] = NAN;
       }
     }
-    write_float_output(outputfile, buf, max2, max1, 0, COLOR_GRAY);
+    write_float_output(outputfile, buf, width, height, 0, COLOR_GRAY);
     free(buf);
   }
 
@@ -112,12 +108,12 @@ int main(int argc,char* argv[]) {
     /* min_local is 0 everywhere except at local minima, where it holds the
        (truncated) field value; normalize those to 0-255 (0 stays black) so
        the sparse local-minima map is actually visible. */
-    float *local_buf = (float*)malloc(sizeof(float)*max1*max2);
+    float *local_buf = (float*)malloc(sizeof(float)*height*width);
     int idx;
-    for (idx=0; idx<max1*max2; idx++) {
+    for (idx=0; idx<height*width; idx++) {
       local_buf[idx] = (float)min_local[idx];
     }
-    write_png_from_float("max_local.png", local_buf, max2, max1, 1, COLOR_GRAY);
+    write_png_from_float("max_local.png", local_buf, width, height, 1, COLOR_GRAY);
     free(local_buf);
   }
 

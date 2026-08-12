@@ -9,40 +9,40 @@
 #include "io.h"
 #include "laplace2D.h"
 
-int compute_boundary_cortex3D(unsigned short *segmented,int max1,int max2, int max3, int label_wm, int label_cortex) {
+int compute_boundary_cortex3D(unsigned short *segmented,int height,int width, int depth, int label_wm, int label_cortex) {
   int i,j,k,sum,found;
 
-  for (i=0;i<max1*max2*max3;i++) {
+  for (i=0;i<height*width*depth;i++) {
     if (segmented[i] != label_cortex && segmented[i] != label_wm && segmented[i] != 0 ) {
-      relabel_ushort(segmented,max1*max2*max3,segmented[i],0);
+      relabel_ushort(segmented,height*width*depth,segmented[i],0);
     }
   }
 
   sum=0;
-  for(k=0; k<max3; k++) {
-    for(j=0; j<max2; j++) {
-      for(i=0; i<max1; i++) {     
-	if ((i==0)||(j==0)||(k==0)||(i==max1-1)||(j==max2-1)||(k==max3-1) ) {
+  for(k=0; k<depth; k++) {
+    for(j=0; j<width; j++) {
+      for(i=0; i<height; i++) {     
+	if ((i==0)||(j==0)||(k==0)||(i==height-1)||(j==width-1)||(k==depth-1) ) {
 	  /* nothing to do */	 
 	} else if ( (segmented[sum]==label_wm) &&
 		    ((segmented[sum+1]==label_cortex)||
 		     (segmented[sum-1]==label_cortex)||
 		     
-		     (segmented[sum+max1]==label_cortex)||
-		     (segmented[sum-max1]==label_cortex)||
+		     (segmented[sum+height]==label_cortex)||
+		     (segmented[sum-height]==label_cortex)||
 		     
-		     (segmented[sum+max1*max2]==label_cortex)||
-		     (segmented[sum-max1*max2]==label_cortex))) {
+		     (segmented[sum+height*width]==label_cortex)||
+		     (segmented[sum-height*width]==label_cortex))) {
 	  segmented[sum] = 1; 
 	} else if ( (segmented[sum]==0) &&
 		    ((segmented[sum+1]==label_cortex)||
 		     (segmented[sum-1]==label_cortex)||
 		     
-		     (segmented[sum+max1]==label_cortex)||
-		     (segmented[sum-max1]==label_cortex)||
+		     (segmented[sum+height]==label_cortex)||
+		     (segmented[sum-height]==label_cortex)||
 		     
-		     (segmented[sum+max1*max2]==label_cortex)||
-		     (segmented[sum-max1*max2]==label_cortex))) {	  
+		     (segmented[sum+height*width]==label_cortex)||
+		     (segmented[sum-height*width]==label_cortex))) {	  
 	  segmented[sum] = 128; 
 	}
 	sum++;
@@ -57,9 +57,9 @@ int main(int argc, char* argv[]) {
   unsigned short *input;
   int i,j,swapbyte=0,label_wm=3,label_cortex=2,tam,fsize,hsize,c,option_index;
   float threshold;
-  int max1 = 256;
-  int max2 = 256;
-  int max3 = 1;
+  int height = 256;
+  int width = 256;
+  int depth = 1;
   int debug = 1;
   FILE *fp,*fg;
   struct timeval startinit;
@@ -129,18 +129,18 @@ int main(int argc, char* argv[]) {
 	printf ("Error parsing argument \n");
       if (sscanf(argv[optind++], "%s", outputfile) == 0)
 	printf ("Error parsing argument \n");
-      if (sscanf(argv[optind++], "%d", &max1) == 0)
+      if (sscanf(argv[optind++], "%d", &height) == 0)
 	printf ("Error parsing argument \n");
-      if (sscanf(argv[optind++], "%d", &max2) == 0)
+      if (sscanf(argv[optind++], "%d", &width) == 0)
 	printf ("Error parsing argument \n");
-      if (sscanf(argv[optind++], "%d", &max3) == 0)
+      if (sscanf(argv[optind++], "%d", &depth) == 0)
 	printf ("Error parsing argument \n");      
     }
   }
 
   gettimeofday(&startinit,NULL);
   /* reserve data */
-  input = (unsigned short*)malloc(sizeof(unsigned short)*max1*max2*max3);
+  input = (unsigned short*)malloc(sizeof(unsigned short)*height*width*depth);
 
   l = strchr(input_prefix,'.');
   if (l != (unsigned char*)NULL) {
@@ -155,36 +155,36 @@ int main(int argc, char* argv[]) {
       fprintf(stderr,"Failed reading inputfile %s\n",input_prefix);
       exit(1);
     }
-    fread(input,sizeof(unsigned short),max1*max2*max3,fp);
+    fread(input,sizeof(unsigned short),height*width*depth,fp);
     fclose(fp);
   } else {
     /* Read data */
-    for (i=0;i<max3;i++) {
+    for (i=0;i<depth;i++) {
       sprintf(input_file,"%s.%03d",input_prefix,i+1);
       fp = fopen(input_file,"r");
       if (fp == NULL) {
 	fprintf(stderr,"Failed reading inputfile %s\n",input_file);
 	exit(1);
       }
-      fread(&input[max1*max2*i],sizeof(unsigned short),max1*max2,fp);
+      fread(&input[height*width*i],sizeof(unsigned short),height*width,fp);
       fclose(fp);
     }
   }
 
   if (swapbyte == 1) {
-    for (i=0; i < max1*max2*max3; i++) {      
+    for (i=0; i < height*width*depth; i++) {      
       aux = (unsigned char*)&input[i];
       input[i] = ReadGEShort(aux);   
     }
   }
   
   /* Compute */
-  compute_boundary_cortex3D(input,max1,max2,max3,label_wm,label_cortex);
+  compute_boundary_cortex3D(input,height,width,depth,label_wm,label_cortex);
 
-  relabel_ushort(input,max1*max2*max3,0,255);
-  relabel_ushort(input,max1*max2*max3,label_wm,255);
-  relabel_ushort(input,max1*max2*max3,label_cortex,2);
-  relabel_ushort(input,max1*max2*max3,128,0);
+  relabel_ushort(input,height*width*depth,0,255);
+  relabel_ushort(input,height*width*depth,label_wm,255);
+  relabel_ushort(input,height*width*depth,label_cortex,2);
+  relabel_ushort(input,height*width*depth,128,0);
   /* Write data */
   printf("writing file %s\n",outputfile);
   fp = fopen(outputfile,"w");
@@ -192,7 +192,7 @@ int main(int argc, char* argv[]) {
     fprintf(stderr,"Failed writing file %s\n",outputfile);
     return 1;
   }
-  fwrite(input,sizeof(unsigned short),max1*max2*max3,fp);  
+  fwrite(input,sizeof(unsigned short),height*width*depth,fp);  
   fclose(fp);
 
   /* Free data */
