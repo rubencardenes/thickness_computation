@@ -160,11 +160,20 @@ thickness_test thickness2d_knee "$OUTDIR/thickness2d_knee.png" 5.605474 \
 # ry=35), so the fix changes their measured thickness; thickness3d_sphere is
 # isotropic and is unaffected, confirming the change is a correctness fix
 # and not a regression.
+#
+# thickness3d_elipsoid's value was recaptured again after pinning
+# -ffp-contract=off in the Makefile: laplace3D_voxelsize's relaxation runs a
+# fixed 200 iterations without converging, so letting the compiler fuse
+# a*b+c into one rounding step made the result depend on whether the build
+# target has hardware FMA (arm64 always does; x86_64 without -mfma usually
+# doesn't), moving this anisotropic phantom's mean by >1% between a macOS
+# and a GitHub Actions (ubuntu-latest/x86_64) build of identical source.
+# thickness3d_caja's value happened not to move.
 thickness_test thickness3d_caja "$OUTDIR/thickness3d_caja.volf" 23.825426 \
   ./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 \
   data/input_caja3d.vols "$OUTDIR/thickness3d_caja.volf" 80 80 80
 
-thickness_test thickness3d_elipsoid "$OUTDIR/thickness3d_elipsoid.volf" 12.719837 \
+thickness_test thickness3d_elipsoid "$OUTDIR/thickness3d_elipsoid.volf" 12.575148 \
   ./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 \
   data/phantom_elipsoid.vols "$OUTDIR/thickness3d_elipsoid.volf" 80 80 80
 
