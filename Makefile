@@ -8,11 +8,18 @@ SRC     = src
 BUILD   = build
 # -std=gnu89 + -Wno-implicit-function-declaration keep this 2004-era C
 # building on modern clang/gcc (implicit declarations are otherwise errors).
-FLAGS   = -g -O2 -std=gnu89 -Wno-implicit-function-declaration -I$(SRC)
+# -ffp-contract=off disables fused multiply-add contraction: the iterative
+# float solvers (e.g. laplace3D's fixed-iteration relaxation) never run to
+# full convergence, so letting the compiler silently fuse a*b+c into one
+# rounding step makes results depend on whether the target has hardware FMA
+# (arm64 always does, x86_64 without -mfma usually doesn't) -- that alone
+# was enough to move thickness3d_elipsoid's mean by >1% between a macOS/arm64
+# build and GitHub Actions' ubuntu-latest/x86_64 build of identical source.
+FLAGS   = -g -O2 -std=gnu89 -Wno-implicit-function-declaration -ffp-contract=off -I$(SRC)
 
 # png_write.c instantiates the stb_image single-header libraries, which require
 # C99 or later, so it is compiled with its own flags.
-PNGFLAGS = -g -O2 -std=gnu11 -I$(SRC)
+PNGFLAGS = -g -O2 -std=gnu11 -ffp-contract=off -I$(SRC)
 
 # Executables listed in README.md
 EXECUTABLES = \
