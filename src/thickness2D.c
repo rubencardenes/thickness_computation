@@ -11,320 +11,185 @@
 
 #define PI 3.1415927
 
-/* Yezzi PDE thickness propagation, reverse direction: estimates the thickness
-   at (x,y) from whichever of its x/y neighbors the Laplace gradient points back
-   to, weighted by the gradient magnitude. Any already-propagated neighbor is
-   used regardless of gradient magnitude.
+/* ---------------------------------------------------------------------------
+   Yezzi PDE thickness propagation, 2D.
 
-   Unlike the 3D distanceYezzi_reverse3D there is no tolerance parameter here:
-   the r-tolerance variants that rejected a step when the upstream neighbor was
-   unreached and the gradient exceeded `r` were dead code and have been removed.
-   So in 2D the retry pass in thickness2DYezzi behaves exactly like the main
+   Estimates the thickness at (x,y) from the two upwind neighbours the Laplace
+   gradient points back to, weighted by the gradient magnitude. `sign` selects
+   the direction: +1 walks the gradient backwards (the "reverse" map, seeded
+   from the label-1 boundary), -1 walks it forwards (seeded from label 0). An
+   axis' upwind neighbour is the +stride one when sign*g > 0, the -stride one
+   otherwise.
+
+   Unlike the 3D rule there is no tolerance and no rejection: whatever upwind
+   neighbours have been reached contribute, and the result is always returned.
+   The r-tolerance variants that rejected a step when an upstream neighbour was
+   unreached were dead code and have been removed, which is also why the retry
+   pass in thickness2D_propagate applies exactly the same rule as the main
    pass. */
-float distanceYezzi_reverse(float **gradientx, float **gradienty, int newmapindex, int x, int y, float *maps, int width, float hx, float hy) {
-  float distf;
+static float yezzi_step2D(float **gradientx, float **gradienty, int newmapindex,
+                          int x, int y, float *maps, int width, int sign,
+                          float hx, float hy) {
+  float gx = gradientx[y][x];
+  float gy = gradienty[y][x];
+  float distf = 1.0;
+  int up;
 
-  if (gradientx[y][x] > 0) {
-    if (maps[newmapindex + 1] == -1) {
-      distf = 1.0;
-    } else {
-      distf = 1.0 + fabs(gradientx[y][x]) * maps[newmapindex + 1] / hx;
-    }
-  } else {
-    if (maps[newmapindex - 1] == -1) {
-      distf = 1.0;
-    } else {
-      distf = 1.0 + fabs(gradientx[y][x]) * maps[newmapindex - 1] / hx;
-    }
+  up = (sign * gx > 0) ? newmapindex + 1 : newmapindex - 1;
+  if (maps[up] > -1) {
+    distf += fabs(gx) * maps[up] / hx;
   }
-  if (gradienty[y][x] > 0) {
-    if (maps[newmapindex + width] > -1) {
-      distf += fabs(gradienty[y][x]) * maps[newmapindex + width] / hy;
-    }
-  } else {
-    if (maps[newmapindex - width] > -1) {
-      distf += fabs(gradienty[y][x]) * maps[newmapindex - width] / hy;
-    }
+
+  up = (sign * gy > 0) ? newmapindex + width : newmapindex - width;
+  if (maps[up] > -1) {
+    distf += fabs(gy) * maps[up] / hy;
   }
-  distf = distf / (fabs(gradientx[y][x]) / hx + fabs(gradienty[y][x]) / hy);
-  return distf;
+
+  return distf / (fabs(gx) / hx + fabs(gy) / hy);
 }
 
-/* Forward-direction counterpart of distanceYezzi_reverse, following the
-   gradient with the opposite sign convention; used together with
-   thickness2DYezzi. No tolerance parameter, as above. */
-float distanceYezzi(float **gradientx, float **gradienty, int newmapindex, int x, int y, float *maps, int width, float hx, float hy) {
+/* Tries to hand the value at `mapindex` to each of its 8 neighbours that is
+   still undecided band (label_cortex), pushing every neighbour it updates onto
+   `next` and marking it `mark`. Returns 1 if at least one neighbour was
+   updated. Sets *overflow if `next` filled up. */
+static int propagate_from2D(int mapindex, unsigned char *prot_copia, float *maps,
+                            float **gradientx, float **gradienty, int height, int width,
+                            int sign, float hx, float hy, unsigned char label_cortex,
+                            unsigned char mark, struct index_list *next, int *overflow) {
+  int neighbors[MAX_NEIGHBORS_2D];
+  int k, count, newmapindex, xr, yr;
+  int moved = 0;
   float distf;
-  if (gradientx[y][x] < 0) {
-    if (maps[newmapindex + 1] == -1) {
-      distf = 1.0;
-    } else {
-      distf = 1.0 + fabs(gradientx[y][x]) * maps[newmapindex + 1] / hx;
+
+  count = neighbors2D(mapindex, height, width, neighbors);
+  for (k = 0; k < count; k++) {
+    newmapindex = neighbors[k];
+    if (prot_copia[newmapindex] != label_cortex) continue;
+
+    xr = maptox(newmapindex, width);
+    yr = maptoy(newmapindex, width);
+    distf = yezzi_step2D(gradientx, gradienty, newmapindex, xr, yr, maps, width, sign, hx, hy);
+    if (!(distf > 0)) continue;
+
+    maps[newmapindex] = distf;
+    moved = 1;
+    if (list_push(next, newmapindex) != 0) {
+      *overflow = 1;
+      return moved;
     }
-  } else {
-    if (maps[newmapindex - 1] == -1) {
-      distf = 1.0;
-    } else {
-      distf = 1.0 + fabs(gradientx[y][x]) * maps[newmapindex - 1] / hx;
-    }
+    prot_copia[newmapindex] = mark;
   }
-  if (gradienty[y][x] < 0) {
-    if (maps[newmapindex + width] > -1) {
-      distf += fabs(gradienty[y][x]) * maps[newmapindex + width] / hy;
-    }
-  } else {
-    if (maps[newmapindex - width] > -1) {
-      distf += fabs(gradienty[y][x]) * maps[newmapindex - width] / hy;
-    }
-  }
-  distf = distf / (fabs(gradientx[y][x]) / hx + fabs(gradienty[y][x]) / hy);
-  return distf;
+  return moved;
 }
 
+/* Computes the 2D thickness map by propagating outward from every pixel labeled
+   `seed_label` (one boundary) across the label_cortex band, 8-connected,
+   running num_it independent passes. `maps` holds the final values on return.
 
-/* Computes the 2D thickness map by propagating distf values outward from the
-   pixels labeled 0 in `prototypes` (one boundary) across the label_cortex band,
-   using distanceYezzi as the per-step update rule. The front is advanced with
-   three worklists (list1 = current front, list2 = next front, list_aux = pixels
-   that could not propagate to any neighbor this pass and get one more try after
-   the front has advanced). Runs num_it independent passes; `maps` holds the
-   final thickness values on return.
+   Three worklists advance the front: list1 is the current front, list2 the next
+   one, and list_aux collects the pixels that could not reach any neighbour this
+   round and get one more try once the front has moved. */
+static int thickness2D_propagate(unsigned char *prototypes, int height, int width, float *maps,
+                                 float **gradientx, float **gradienty, int num_it,
+                                 float hx, float hy, unsigned char label_cortex, int debug,
+                                 unsigned char seed_label, int sign) {
+  int npixels = height * width;
+  int max_number_in_list = 50000;
+  int i, j, l, d = 0, mapindex;
+  int overflow = 0;
+  struct index_list list1, list2, list_aux;
+  unsigned char *prot_copia;
 
-   The main pass and the retry pass apply the same rule; in 3D they differ by a
-   tolerance, but distanceYezzi has no 2D equivalent of it. */
+  prot_copia = (unsigned char *)malloc(sizeof(unsigned char) * npixels);
+  if (prot_copia == NULL) {
+    fprintf(stderr, "thickness2D: out of memory\n");
+    return 1;
+  }
+  for (j = 0; j < npixels; j++) {
+    maps[j] = -1;
+    prot_copia[j] = prototypes[j];
+  }
+
+  if (list_init(&list1, max_number_in_list) != 0 ||
+      list_init(&list2, max_number_in_list) != 0 ||
+      list_init(&list_aux, max_number_in_list) != 0) {
+    fprintf(stderr, "thickness2D: out of memory\n");
+    list_free(&list1);
+    list_free(&list2);
+    list_free(&list_aux);
+    free(prot_copia);
+    return 1;
+  }
+
+  for (l = 0; l < num_it && !overflow; l++) {
+    d = 0;
+    if (debug == 1) {
+      printf("iteration %d\n", l);
+    }
+
+    /* Reseed: recover the domain, since the previous pass overwrote it. */
+    for (i = 0; i < npixels; i++) {
+      prot_copia[i] = prototypes[i];
+      if (prot_copia[i] == seed_label) {
+        if (list_push(&list1, i) != 0) {
+          overflow = 1;
+          break;
+        }
+        maps[i] = 0;
+      }
+    }
+
+    while (!overflow && (list1.num_elem != 0 || list2.num_elem != 0)) {
+      while (list1.num_elem != 0) {
+        mapindex = list_pop(&list1);
+        if (!propagate_from2D(mapindex, prot_copia, maps, gradientx, gradienty,
+                              height, width, sign, hx, hy, label_cortex,
+                              seed_label, &list2, &overflow)) {
+          /* Could not reach anyone; give it one more try after the front moves. */
+          if (list_push(&list_aux, mapindex) != 0) {
+            overflow = 1;
+            break;
+          }
+        }
+        if (overflow) break;
+      }
+
+      for (i = 0; i < list_aux.num_elem && !overflow; i++) {
+        propagate_from2D(list_aux.elem[i], prot_copia, maps, gradientx, gradienty,
+                         height, width, sign, hx, hy, label_cortex,
+                         seed_label, &list2, &overflow);
+      }
+      list_clear(&list_aux);
+      d++;
+      list_swap(&list1, &list2);
+    }
+  }
+
+  if (overflow) {
+    printf("Error: worklist exceeded %d entries\n", max_number_in_list);
+  } else {
+    printf("dmax = %d\n", d);
+  }
+
+  list_free(&list1);
+  list_free(&list2);
+  list_free(&list_aux);
+  free(prot_copia);
+  return overflow ? 1 : 0;
+}
+
+/* Propagates outward from the pixels labeled 0 (one boundary), following the
+   Laplace gradient forwards. */
 int thickness2DYezzi(unsigned char *prototypes, int height, int width, float *maps, float **gradientx, float **gradienty, int num_it, float hx, float hy, unsigned char label_cortex, int debug) {
-  int i, j, xr, yr, mapindex, newmapindex, d, l, flag, k, count;
-  int neighbors[MAX_NEIGHBORS_2D];
-  float distf;
-  struct index_list list1, list2, list_aux;
-  int max_number_in_list = 50000;
-  unsigned char *prot_copia;
-
-  prot_copia = (unsigned char *)malloc(sizeof(unsigned char) * height * width);
-
-  for (j = 0; j < height * width; j++) {
-    maps[j] = -1;
-    prot_copia[j] = prototypes[j];
-  }
-
-  list_init(&list1, max_number_in_list);
-
-  list_init(&list2, max_number_in_list);
-
-  list_init(&list_aux, max_number_in_list);
-
-  for (l = 0; l < num_it; l++) {
-    d = 0;
-    if (debug == 1) {
-      printf("iteration %d\n", l);
-    }
-    for (i = 0; i < height * width; i++) {
-      prot_copia[i] = prototypes[i]; /* to recover the domain after the first iteration */
-      if (prot_copia[i] == 0) {
-        if (list_push(&list1, i) != 0) {
-          printf("Error list1.num_elem >= %d\n", max_number_in_list);
-          return 1;
-        }
-        maps[i] = 0;
-      }
-    }
-
-    while (list1.num_elem != 0 || list2.num_elem != 0) {
-      /* printf("num elem list1: %d\n",list1.num_elem);*/
-      while (list1.num_elem != 0) {
-        /* Get element from list1 */
-        mapindex = list_pop(&list1);
-        flag = 0;
-        count = neighbors2D(mapindex, height, width, neighbors);
-        for (k = 0; k < count; k++) {
-          newmapindex = neighbors[k];
-          xr = maptox(newmapindex, width);
-          yr = maptoy(newmapindex, width);
-          if (prot_copia[newmapindex] == label_cortex) {
-            /* Compute new distance */
-            distf = distanceYezzi(gradientx, gradienty, newmapindex, xr, yr, maps, width, hx, hy);
-
-            if (distf > 0) {
-              maps[newmapindex] = distf;
-              flag = 1;
-              /* Put new element in list2*/
-              if (list_push(&list2, newmapindex) != 0) {
-                printf("Error list2.num_elem >= %d\n", max_number_in_list);
-                return 1;
-              }
-              prot_copia[newmapindex] = 0;
-            }
-          }
-        }
-        if (flag == 0) {
-          /* Ponemos en un lista auxiliar el punto que no pudo propagarse*/
-          if (list_push(&list_aux, mapindex) != 0) {
-            printf("Error list_aux.num_elem >= %d\n", max_number_in_list);
-            return 1;
-          }
-        }
-      }
-
-      for (i = 0; i < list_aux.num_elem; i++) {
-        /* while (list_aux.num_elem != 0) {    */
-        /* Get element from list1 */
-        mapindex = list_aux.elem[i];
-        count = neighbors2D(mapindex, height, width, neighbors);
-        for (k = 0; k < count; k++) {
-          newmapindex = neighbors[k];
-          xr = maptox(newmapindex, width);
-          yr = maptoy(newmapindex, width);
-          if (prot_copia[newmapindex] == label_cortex) {
-            /* Compute new distance */
-            distf = distanceYezzi(gradientx, gradienty, newmapindex, xr, yr, maps, width, hx, hy);
-
-            if (distf > 0) {
-              maps[newmapindex] = distf;
-              /* Put new element in list2*/
-              if (list_push(&list2, newmapindex) != 0) {
-                printf("Error list2.num_elem >= %d\n", max_number_in_list);
-                return 1;
-              }
-              prot_copia[newmapindex] = 0;
-            }
-          }
-        }
-      }
-      list_clear(&list_aux);
-      /* printf("num elem list2: %d\n",list2.num_elem);*/
-      d++;
-      /* swap(list1.elem,list2.elem); */
-
-      list_swap(&list1, &list2);
-    }
-  }
-  printf("dmax = %d\n", d);
-
-  list_free(&list1);
-  list_free(&list2);
-  list_free(&list_aux);
-  free(prot_copia);
-  return 0; /* success */
+  return thickness2D_propagate(prototypes, height, width, maps, gradientx, gradienty,
+                               num_it, hx, hy, label_cortex, debug, 0, -1);
 }
 
-/* Reverse-direction counterpart of thickness2DYezzi: propagates outward from
-   the pixels labeled 1 instead of 0, using distanceYezzi_reverse. Produces the
-   thickness map measured from the opposite boundary. */
+/* Reverse counterpart: propagates from the pixels labeled 1, walking the
+   gradient backwards, giving the thickness measured from the other boundary. */
 int thickness2DYezzi_reverse(unsigned char *prototypes, int height, int width, float *maps, float **gradientx, float **gradienty, int num_it, float hx, float hy, unsigned char label_cortex, int debug) {
-  int i, j, xr, yr, mapindex, newmapindex, d, flag, l, k, count;
-  int neighbors[MAX_NEIGHBORS_2D];
-  float distf;
-  struct index_list list1, list2, list_aux;
-  int max_number_in_list = 50000;
-  unsigned char *prot_copia;
-
-  prot_copia = (unsigned char *)malloc(sizeof(unsigned char) * height * width);
-
-  for (j = 0; j < height * width; j++) {
-    maps[j] = -1;
-    prot_copia[j] = prototypes[j];
-  }
-
-  list_init(&list1, max_number_in_list);
-
-  list_init(&list2, max_number_in_list);
-
-  list_init(&list_aux, max_number_in_list);
-
-  for (l = 0; l < num_it; l++) {
-    d = 0;
-    if (debug == 1) {
-      printf("iteration %d\n", l);
-    }
-    for (i = 0; i < height * width; i++) {
-      prot_copia[i] = prototypes[i]; /* to recover the domain after the first iteration */
-      if (prot_copia[i] == 1) {
-        if (list_push(&list1, i) != 0) {
-          printf("Error list1.num_elem >= %d\n", max_number_in_list);
-          return 1;
-        }
-        maps[i] = 0;
-      }
-    }
-
-    d = 0;
-    while (list1.num_elem != 0 || list2.num_elem != 0) {
-      /* printf("num elem list1: %d\n",list1.num_elem);*/
-      while (list1.num_elem != 0) {
-        /* Get element from list1 */
-        mapindex = list_pop(&list1);
-        flag = 0;
-        count = neighbors2D(mapindex, height, width, neighbors);
-        for (k = 0; k < count; k++) {
-          newmapindex = neighbors[k];
-          xr = maptox(newmapindex, width);
-          yr = maptoy(newmapindex, width);
-          if (prot_copia[newmapindex] == label_cortex) {
-            /* Compute new distance */
-            distf = distanceYezzi_reverse(gradientx, gradienty, newmapindex, xr, yr, maps, width, hx, hy);
-
-            if (distf > 0) {
-              flag = 1;
-              maps[newmapindex] = distf;
-              /* Put new element in list2*/
-              if (list_push(&list2, newmapindex) != 0) {
-                printf("Error list2.num_elem >= %d\n", max_number_in_list);
-                return 1;
-              }
-              prot_copia[newmapindex] = 1;
-            }
-          }
-        }
-        if (flag == 0) {
-          /* Ponemos en un lista auxiliar el punto que no pudo propagarse*/
-          if (list_push(&list_aux, mapindex) != 0) {
-            printf("Error list_aux.num_elem >= %d\n", max_number_in_list);
-            return 1;
-          }
-        }
-      }
-
-      for (i = 0; i < list_aux.num_elem; i++) {
-        /* while (list_aux.num_elem != 0) { */
-        /* Get element from list1 */
-        mapindex = list_aux.elem[i];
-        count = neighbors2D(mapindex, height, width, neighbors);
-        for (k = 0; k < count; k++) {
-          newmapindex = neighbors[k];
-          xr = maptox(newmapindex, width);
-          yr = maptoy(newmapindex, width);
-          if (prot_copia[newmapindex] == label_cortex) {
-            /* Compute new distance */
-            distf = distanceYezzi_reverse(gradientx, gradienty, newmapindex, xr, yr, maps, width, hx, hy);
-
-            if (distf > 0) {
-              maps[newmapindex] = distf;
-              /* Put new element in list2*/
-              if (list_push(&list2, newmapindex) != 0) {
-                printf("Error list2.num_elem >= %d\n", max_number_in_list);
-                return 1;
-              }
-              prot_copia[newmapindex] = 1;
-            }
-          }
-        }
-      }
-
-      /* printf("num elem list2: %d, list_aux.num_elem %d\n",list2.num_elem,list_aux.num_elem);*/
-      list_clear(&list_aux);
-      d++;
-      /* swap(list1.elem,list2.elem); */
-
-      list_swap(&list1, &list2);
-    }
-  }
-  printf("dmax = %d\n", d);
-
-  list_free(&list1);
-  list_free(&list2);
-  list_free(&list_aux);
-  free(prot_copia);
-  return 0; /* success */
+  return thickness2D_propagate(prototypes, height, width, maps, gradientx, gradienty,
+                               num_it, hx, hy, label_cortex, debug, 1, 1);
 }
 
 /* Quantizes the gradient direction (gradientx,gradienty) at pixel (x,y) into a

@@ -16,6 +16,7 @@
 
 
 int new_compute_corners(unsigned short *input, int height, int width);
+void init_laplace_field2D(const unsigned char *input, int height, int width, float **output, int reverse);
 int laplace2D(unsigned char *input, int height, int width, float **output, int iterations, float lambda, int reverse);
 int RelabelBoundary(unsigned char *domain, int height, int width);
 int EdgeDetect(unsigned char *domain, int height, int width);

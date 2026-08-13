@@ -6,19 +6,18 @@
 #include <assert.h>
 #include "laplace3D.h"
 
-/* Input values
-255 Outside domain
-1 Exterior boundary 
-0 Interior boundary
-2 Inside domain 
-*/
-int laplace3D(unsigned char *input, int height, int width, int depth, float ***output, int iterations, float lambda) {
-  int i, j, k, l;
+/* Writes the solver's starting field from the label image: the band (label 2)
+   starts at 0, the region outside the domain (label 3) at -1, and every other
+   label is held at its own value as the Dirichlet condition the relaxation
+   reads.
+
+   Iteration order (k,j,i with i innermost) must match the i-fastest /
+   j-next(height stride) / k-slowest(height*width stride) convention that
+   compute_boundary_cortex3D/EdgeDetect3D use to populate `input`. */
+static void init_field3D(const unsigned char *input, int height, int width, int depth, float ***output) {
+  int i, j, k;
   int sum = 0;
-  /* Initialize domain, inside=0, and boundaries values.
-     Iteration order (k,j,i with i innermost) must match the i-fastest/
-     j-next(height stride)/k-slowest(height*width stride) convention that
-     compute_boundary_cortex3D/EdgeDetect3D use to populate `input`. */
+
   for (k = 0; k < depth; k++) {
     for (j = 0; j < width; j++) {
       for (i = 0; i < height; i++) {
@@ -33,6 +32,18 @@ int laplace3D(unsigned char *input, int height, int width, int depth, float ***o
       }
     }
   }
+}
+
+/* Input values
+255 Outside domain
+1 Exterior boundary 
+0 Interior boundary
+2 Inside domain 
+*/
+int laplace3D(unsigned char *input, int height, int width, int depth, float ***output, int iterations, float lambda) {
+  int i, j, k, l;
+  int sum = 0;
+  init_field3D(input, height, width, depth, output);
 
   /* Solve Laplacian */
   for (l = 0; l < iterations; l++) {
@@ -56,24 +67,7 @@ int laplace3D(unsigned char *input, int height, int width, int depth, float ***o
 int laplace3D_voxelsize(unsigned char *input, int height, int width, int depth, float ***output, int iterations, float hx, float hy, float hz, float lambda) {
   int i, j, k, l;
   int sum = 0;
-  /* Initialize domain, inside=0, and boundaries values.
-     Iteration order (k,j,i with i innermost) must match the i-fastest/
-     j-next(height stride)/k-slowest(height*width stride) convention that
-     compute_boundary_cortex3D/EdgeDetect3D use to populate `input`. */
-  for (k = 0; k < depth; k++) {
-    for (j = 0; j < width; j++) {
-      for (i = 0; i < height; i++) {
-        if (input[sum] == 2) {
-          output[k][i][j] = 0;
-        } else if (input[sum] == 3) {
-          output[k][i][j] = -1;
-        } else {
-          output[k][i][j] = input[sum];
-        }
-        sum++;
-      }
-    }
-  }
+  init_field3D(input, height, width, depth, output);
 
   /* Solve Laplacian */
   for (l = 0; l < iterations; l++) {
@@ -94,30 +88,39 @@ int laplace3D_voxelsize(unsigned char *input, int height, int width, int depth, 
   return 0;
 }
 
-int EdgeDetect3D_knee(unsigned char *domain, int height, int width, int depth) {
+/* Marks as boundary (label 1) every interior voxel that touches the exterior
+   across one of its 6 faces, leaving the outermost 1-voxel shell alone (its
+   neighbour offsets would leave the volume).
+
+   `interior_label` < 0 means "any voxel that is not exterior_label", which is
+   what the cortex pipeline wants; a non-negative value restricts it to that one
+   label, which is what the knee pipeline wants. The neighbour strides follow
+   the i-fastest / j-next(height stride) / k-slowest convention. */
+static int edge_detect3D(unsigned char *domain, int height, int width, int depth,
+                         int interior_label, unsigned char exterior_label) {
   int x, y, z, i;
+  int plane = height * width;
   i = 0;
 
   for (z = 0; z < depth; z++) {
     for (y = 0; y < width; y++) {
       for (x = 0; x < height; x++) {
+        int interior = (interior_label < 0) ? (domain[i] != exterior_label)
+                                            : (domain[i] == interior_label);
         if ((x == 0) || (y == 0) || (z == 0) || (x == height - 1) || (y == width - 1) || (z == depth - 1)) {
-          /* domain[i]=255;*/
-        } else if ((domain[i] == 2) &&
-                   ((domain[i + 1] == 255) ||
-                    (domain[i - 1] == 255) ||
+          /* nothing to do */
+        } else if (interior &&
+                   ((domain[i + 1] == exterior_label) ||
+                    (domain[i - 1] == exterior_label) ||
 
-                    (domain[i + height] == 255) ||
-                    (domain[i - height] == 255) ||
+                    (domain[i + height] == exterior_label) ||
+                    (domain[i - height] == exterior_label) ||
 
-                    (domain[i + height * width] == 255) ||
-                    (domain[i - height * width] == 255))) {
+                    (domain[i + plane] == exterior_label) ||
+                    (domain[i - plane] == exterior_label))) {
 
           domain[i] = 1;
         }
-        /*else {	   	   
-    domain[i]=255;
-    }*/
         i++;
       }
     }
@@ -125,35 +128,14 @@ int EdgeDetect3D_knee(unsigned char *domain, int height, int width, int depth) {
   return 0;
 }
 
+/* Knee pipeline: the domain band is label 2 and everything outside it is 255. */
+int EdgeDetect3D_knee(unsigned char *domain, int height, int width, int depth) {
+  return edge_detect3D(domain, height, width, depth, 2, 255);
+}
+
+/* Cortex pipeline: anything non-zero is material, 0 is background. */
 int EdgeDetect3D(unsigned char *domain, int height, int width, int depth) {
-  int x, y, z, i;
-  i = 0;
-
-  for (z = 0; z < depth; z++) {
-    for (y = 0; y < width; y++) {
-      for (x = 0; x < height; x++) {
-        if ((x == 0) || (y == 0) || (z == 0) || (x == height - 1) || (y == width - 1) || (z == depth - 1)) {
-          /* domain[i]=255;*/
-        } else if ((domain[i] != 0) &&
-                   ((domain[i + 1] == 0) ||
-                    (domain[i - 1] == 0) ||
-
-                    (domain[i + height] == 0) ||
-                    (domain[i - height] == 0) ||
-
-                    (domain[i + height * width] == 0) ||
-                    (domain[i - height * width] == 0))) {
-
-          domain[i] = 1;
-        }
-        /*else {	   	   
-    domain[i]=255;
-    }*/
-        i++;
-      }
-    }
-  }
-  return 0;
+  return edge_detect3D(domain, height, width, depth, -1, 0);
 }
 
 /* Relabels the 6-connected region of `oldlabel` reachable from `startindex` to

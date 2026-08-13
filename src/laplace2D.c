@@ -6,6 +6,32 @@
 #include <assert.h>
 #include "laplace2D.h"
 
+/* Writes the solver's starting field from the label image: the band (label 2)
+   starts at 0, the region outside the domain (label 255) at 255 -- or -1 when
+   `reverse` flips which boundary the field runs towards -- and every other
+   label is held at its own value as the Dirichlet condition the relaxation
+   reads. Shared by laplace2D and poisson2D, which differ only in their update
+   step. */
+void init_laplace_field2D(const unsigned char *input, int height, int width, float **output, int reverse) {
+  int i, j;
+  int sum = 0;
+
+  for (i = 0; i < height; i++) {
+    for (j = 0; j < width; j++) {
+      if (input[sum] == 2) {
+        output[i][j] = 0;
+      } else {
+        if (input[sum] == 255) {
+          output[i][j] = reverse ? -1 : 255;
+        } else {
+          output[i][j] = input[sum];
+        }
+      }
+      sum++;
+    }
+  }
+}
+
 /* Input values
 255 Outside domain
 1 Exterior boundary 
@@ -15,25 +41,7 @@
 int laplace2D(unsigned char *input, int height, int width, float **output, int iterations, float lambda, int reverse) {
   int i, j, l;
   int sum = 0;
-  /* Initialize domain, inside=0, and boundaries values*/
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < width; j++) {
-      if (input[sum] == 2) {
-        output[i][j] = 0;
-      } else {
-        if (input[sum] == 255) {
-          if (reverse) {
-            output[i][j] = -1;
-          } else {
-            output[i][j] = 255;
-          }
-        } else {
-          output[i][j] = input[sum];
-        }
-      }
-      sum++;
-    }
-  }
+  init_laplace_field2D(input, height, width, output, reverse);
 
   /* Solve Laplacian */
   for (l = 0; l < iterations; l++) {

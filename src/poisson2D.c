@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "poisson2D.h"
+#include "laplace2D.h"
 
 /* Input values
 255, o 3: Outside domain
@@ -15,25 +16,7 @@
 int poisson2D(unsigned char* input, int height, int width, float** output, int iterations, float lambda, int reverse, float h) {
   int i, j, l;
   int sum = 0;
-  /* Initialize domain, inside=0, and boundaries values*/
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < width; j++) {
-      if (input[sum] == 2) {
-        output[i][j] = 0;
-      } else {
-        if (input[sum] == 255) {
-          if (reverse) {
-            output[i][j] = -1;
-          } else {
-            output[i][j] = 255;
-          }
-        } else {
-          output[i][j] = input[sum];
-        }
-      }
-      sum++;
-    }
-  }
+  init_laplace_field2D(input, height, width, output, reverse);
 
   /* Solve Poisson */
   for (l = 0; l < iterations; l++) {

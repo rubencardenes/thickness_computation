@@ -72,7 +72,10 @@ int main(int argc, char *argv[]) {
     printf("Error in poisson2D\n");
   }
 
-  min_local = (unsigned char *)malloc(sizeof(unsigned char) * height * width);
+  /* calloc, not malloc: minimos_locales2D skips the outermost 1-pixel border
+     without writing to it, so those pixels would otherwise reach max_local.png
+     as uninitialized heap -- which made the image vary between runs. */
+  min_local = (unsigned char *)calloc(height * width, sizeof(unsigned char));
   printf("Entering in min local detection\n");
   if (minimos_locales2D(output, min_local, height, width) == 1) {
     printf("Error in minimos_locales2D\n");
