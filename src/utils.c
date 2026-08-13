@@ -66,10 +66,6 @@ void list_clear(struct index_list *list) {
   list->first = 0;
 }
 
-void list_clear_pending(struct index_list *list) {
-  list->first = list->num_elem;
-}
-
 int list_push(struct index_list *list, int mapindex) {
   if (list->num_elem >= list->max_elem) {
     return 1;
@@ -92,10 +88,6 @@ int list_take(struct index_list *list) {
     return -1;
   }
   return list->elem[list->first++];
-}
-
-int list_pending(const struct index_list *list) {
-  return list->num_elem - list->first;
 }
 
 void list_swap(struct index_list *a, struct index_list *b) {

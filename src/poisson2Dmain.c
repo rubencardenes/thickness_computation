@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include <poisson2D.h>
-#include <laplace2D.h>
+#include "poisson2D.h"
+#include "laplace2D.h"
 #include "png_write.h"
 
 int main(int argc, char *argv[]) {
@@ -13,7 +13,6 @@ int main(int argc, char *argv[]) {
   int i;
   int iterations = 10;
   float lambda = 0.5, h = 1.0;
-  int cortex_label = 2;
   int width, height;
   char *inputfile, *outputfile;
   FILE *fg;
@@ -69,7 +68,7 @@ int main(int argc, char *argv[]) {
   }
 
   printf("Entering in poisson2D\n");
-  if (poisson2D(input, height, width, output, iterations, lambda, 0, h, cortex_label) == 1) {
+  if (poisson2D(input, height, width, output, iterations, lambda, 0, h) == 1) {
     printf("Error in poisson2D\n");
   }
 

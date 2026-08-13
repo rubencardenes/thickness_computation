@@ -37,16 +37,12 @@ int list_init(struct index_list *list, int max_elem);
 void list_free(struct index_list *list);
 /* Forget everything, keeping the allocation. */
 void list_clear(struct index_list *list);
-/* Drop the pending FIFO work but keep elem[] as a record of what was pushed. */
-void list_clear_pending(struct index_list *list);
 /* Returns 0 on success, 1 if the list is full (nothing is stored). */
 int list_push(struct index_list *list, int mapindex);
 /* LIFO: removes and returns the most recently pushed index, -1 if empty. */
 int list_pop(struct index_list *list);
 /* FIFO: returns the next unvisited index without erasing it, -1 if empty. */
 int list_take(struct index_list *list);
-/* How many pushed indices have not been handed out by list_take yet. */
-int list_pending(const struct index_list *list);
 void list_swap(struct index_list *a, struct index_list *b);
 
 /* ---------------------------------------------------------------------------

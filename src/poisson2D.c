@@ -4,7 +4,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <math.h>
 #include "poisson2D.h"
 
 /* Input values
@@ -13,7 +12,7 @@
 0 Interior boundary
 2 Inside domain 
 */
-int poisson2D(unsigned char* input, int height, int width, float** output, int iterations, float lambda, int reverse, float h, int cortex_label) {
+int poisson2D(unsigned char* input, int height, int width, float** output, int iterations, float lambda, int reverse, float h) {
   int i, j, l;
   int sum = 0;
   /* Initialize domain, inside=0, and boundaries values*/
@@ -54,34 +53,8 @@ int poisson2D(unsigned char* input, int height, int width, float** output, int i
 }
 
 
-int maximos_locales2D(float** in, unsigned char* out, int height, int width) {
-  int i, j, x, y, k = 0, sum;
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < width; j++) {
-      if (i == 0 || j == 0 || i == height - 1 || j == width - 1) continue;
-      sum = 0;
-      for (x = -1; x < 2; x++) {
-        for (y = -1; y < 2; y++) {
-          if (x == 0 && y == 0) continue;
-          if (in[i + x][j + y] < in[i][j]) {
-            sum++;
-          }
-        }
-      }
-      if (sum == 8) {
-        out[i * width + j] = (int)in[i][j];
-      } else {
-        out[i * width + j] = 0;
-      }
-      k++;
-    }
-  }
-
-  return 0;
-}
-
 int minimos_locales2D(float** in, unsigned char* out, int height, int width) {
-  int i, j, x, y, k = 0, sum;
+  int i, j, x, y, sum;
   for (i = 0; i < height; i++) {
     for (j = 0; j < width; j++) {
       if (i == 0 || j == 0 || i == height - 1 || j == width - 1) continue;
@@ -99,7 +72,6 @@ int minimos_locales2D(float** in, unsigned char* out, int height, int width) {
       } else {
         out[i * width + j] = 0;
       }
-      k++;
     }
   }
 

@@ -9,18 +9,7 @@
 #include "thickness3D.h"
 #include "laplace3D.h"
 
-#define PI 3.1415927
 #define INF 9999999
-static int numelembucket[NUM_BUCKETS];
-extern int numrechazos;
-extern int numasignaciones;
-extern int asignacionesraras;
-extern int numPrototypes;
-int highestIndexClass;
-int actualDimension;
-int numPrototypesInClass[MAXCLASSNUMBER];
-char buffer[2048];
-int pdim;
 
 /* 3D Yezzi PDE thickness propagation, reverse direction, "relaxed" variant:
    combines whichever of the up to 6 axis-neighbor values (x/y/z) are already
@@ -267,7 +256,7 @@ float distanceYezzi3D(float ***gradientx, float ***gradienty, float ***gradientz
    relaxed distanceYezzi3D_relax on the first iteration's retry pass, list_aux,
    since few neighbors are populated yet). Runs num_it independent passes;
    `maps` holds the final thickness values on return. */
-int thickness3DYezzi(unsigned char *prototypes, int height, int width, int depth, float *maps, float ***laplacefield, float ***gradientx, float ***gradienty, float ***gradientz, int num_it, float hx, float hy, float hz) {
+int thickness3DYezzi(unsigned char *prototypes, int height, int width, int depth, float *maps, float ***gradientx, float ***gradienty, float ***gradientz, int num_it, float hx, float hy, float hz) {
   int i, j, xr, yr, zr, mapindex, newmapindex, d, l, flag, k, count;
   int neighbors[MAX_NEIGHBORS_3D_FACES];
   float distf, r;
@@ -401,14 +390,13 @@ int thickness3DYezzi(unsigned char *prototypes, int height, int width, int depth
 /* Reverse-direction counterpart of thickness3DYezzi: propagates outward from
    the voxels labeled 1 instead of 0, using distanceYezzi_reverse3D (and
    distanceYezzi_reverse3D_relax on the first iteration's retry pass). */
-int thickness3DYezzi_reverse(unsigned char *prototypes, int height, int width, int depth, float *maps, float ***laplacefield, float ***gradientx, float ***gradienty, float ***gradientz, int num_it, float hx, float hy, float hz) {
-  int i, j, xr, yr, zr, mapindex, newmapindex, chekmapindex, reject, d, flag, l, ag, k, count;
+int thickness3DYezzi_reverse(unsigned char *prototypes, int height, int width, int depth, float *maps, float ***gradientx, float ***gradienty, float ***gradientz, int num_it, float hx, float hy, float hz) {
+  int i, j, xr, yr, zr, mapindex, newmapindex, d, flag, l, k, count;
   int neighbors[MAX_NEIGHBORS_3D_FACES];
   float distf, r;
   struct index_list list1, list2, list_aux;
   int max_number_in_list = 300000;
   unsigned char *prot_copia;
-  FILE *fp;
 
   prot_copia = (unsigned char *)malloc(sizeof(unsigned char) * height * width * depth);
 
@@ -527,20 +515,6 @@ int thickness3DYezzi_reverse(unsigned char *prototypes, int height, int width, i
     }
   }
   printf("\nmaximum bucket = %d\n", d);
-
-  /* codigo control */
-  d = 0;
-  ag = 0;
-  for (i = 0; i < height * width * depth; i++) {
-    if (maps[i] > num_it) {
-      d++;
-    }
-    if (prototypes[i] == 2 && maps[i] == -1) {
-      ag++;
-    }
-  }
-  /* printf("Num potenciales errores %d, agujeros %d\n",d,ag);*/
-  /* */
 
   list_free(&list1);
   list_free(&list2);

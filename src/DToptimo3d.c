@@ -45,10 +45,6 @@ struct nodeDataNew {
 
 static int numelembucket[NUM_BUCKETS];
 
-float distance3d(int x1, int y1, int z1, int x2, int y2, int z2) {
-  return sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2) + (z1 - z2) * (z1 - z2));
-}
-
 float distance3d_voxelsize(int x1, int y1, int z1, int x2, int y2, int z2, float hx, float hy, float hz) {
   return sqrt((x1 - x2) * (x1 - x2) * hx * hx + (y1 - y2) * (y1 - y2) * hy * hy + (z1 - z2) * (z1 - z2) * hz * hz);
 }
@@ -68,7 +64,7 @@ int assign(struct element *Element_p, int l, int mapindex, int d, float **maps, 
 
 int propagate3d(struct element Element_p, int l, int height, int width, int depth, struct element *proto, struct bucket *Bucket, float **maps, int dcur, struct element *Element, int K, int domain_label, char *prototypes, float hx, float hy, float hz) {
   int new_mapindex, dist, x, y, z, siguiente;
-  int icur, icuraux;
+  int icuraux;
   float dreal;
 
   for (x = -1; x < 2; x = x + 2) {
@@ -191,19 +187,14 @@ int propagate3d(struct element Element_p, int l, int height, int width, int dept
   return 0;
 }
 
-int DToptimo3d(char *prototypes, int height, int width, int depth, int K, float **maps, int object_label, int domain_label, int debug, float hx, float hy, float hz) {
-  int i, j, x, y, z, l, N, r, count;
+int DToptimo3d(char *prototypes, int height, int width, int depth, int K, float **maps, int object_label, int domain_label, float hx, float hy, float hz) {
+  int i, j, x, y, z, l, r, count;
   int siguiente, indice_actual;
   int d, mapindex, buckets_empty;
   struct element *Element;
   struct element *Proto;
   struct bucket Bucket[NUM_BUCKETS];
-  char fichero[100];
-  float **im;
-  char *imaux;
-  char mapavol[40], distvol[40];
   float distancia_from_l, distancia_ultima;
-  FILE *fp, *fpdist;
 
   /* propagate3d hardcodes maps[2] as the real-distance accumulator, and
      assign() writes the integer bucket distance into maps[K]; those only

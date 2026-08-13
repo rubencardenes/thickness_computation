@@ -10,16 +10,6 @@ int relabel(unsigned char* data, int totdim, unsigned char oldlabel, unsigned ch
   return 0;
 }
 
-int relabel_uchar(unsigned char* data, int totdim, unsigned char oldlabel, unsigned char newlabel) {
-  int i;
-  for (i = 0; i < totdim; i++) {
-    if (data[i] == oldlabel) {
-      data[i] = newlabel;
-    }
-  }
-  return 0;
-}
-
 int relabel_ushort(unsigned short* data, int totdim, unsigned short oldlabel, unsigned short newlabel) {
   int i;
   for (i = 0; i < totdim; i++) {

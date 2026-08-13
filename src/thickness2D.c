@@ -11,28 +11,17 @@
 
 #define PI 3.1415927
 
-static int numelembucket[NUM_BUCKETS];
-extern int numrechazos;
-extern int numasignaciones;
-extern int asignacionesraras;
-extern int numPrototypes;
-int highestIndexClass;
-int actualDimension;
-int numPrototypesInClass[MAXCLASSNUMBER];
-char buffer[2048];
-int pdim;
-
 /* Yezzi PDE thickness propagation, reverse direction: estimates the thickness
    at (x,y) from whichever of its x/y neighbors the Laplace gradient points back
    to, weighted by the gradient magnitude. Any already-propagated neighbor is
    used regardless of gradient magnitude.
 
-   `r` is accepted but ignored. The r-tolerance variants that rejected a step
-   when the upstream neighbor was unreached and the gradient exceeded `r` were
-   dead code and have been removed; the 3D distanceYezzi3D still applies it. So
-   in 2D the retry pass in thickness2DYezzi behaves exactly like the main pass,
-   whatever `r` the caller computes. */
-float distanceYezzi_reverse(float **gradientx, float **gradienty, int newmapindex, int x, int y, float *maps, int width, float r, float hx, float hy) {
+   Unlike the 3D distanceYezzi_reverse3D there is no tolerance parameter here:
+   the r-tolerance variants that rejected a step when the upstream neighbor was
+   unreached and the gradient exceeded `r` were dead code and have been removed.
+   So in 2D the retry pass in thickness2DYezzi behaves exactly like the main
+   pass. */
+float distanceYezzi_reverse(float **gradientx, float **gradienty, int newmapindex, int x, int y, float *maps, int width, float hx, float hy) {
   float distf;
 
   if (gradientx[y][x] > 0) {
@@ -63,8 +52,8 @@ float distanceYezzi_reverse(float **gradientx, float **gradienty, int newmapinde
 
 /* Forward-direction counterpart of distanceYezzi_reverse, following the
    gradient with the opposite sign convention; used together with
-   thickness2DYezzi. `r` is accepted but ignored, as above. */
-float distanceYezzi(float **gradientx, float **gradienty, int newmapindex, int x, int y, float *maps, int width, float r, float hx, float hy) {
+   thickness2DYezzi. No tolerance parameter, as above. */
+float distanceYezzi(float **gradientx, float **gradienty, int newmapindex, int x, int y, float *maps, int width, float hx, float hy) {
   float distf;
   if (gradientx[y][x] < 0) {
     if (maps[newmapindex + 1] == -1) {
@@ -101,12 +90,12 @@ float distanceYezzi(float **gradientx, float **gradienty, int newmapindex, int x
    the front has advanced). Runs num_it independent passes; `maps` holds the
    final thickness values on return.
 
-   The retry pass passes `r` where the main pass passes 0, but distanceYezzi
-   ignores `r` in 2D, so the two passes currently apply the same rule. */
-int thickness2DYezzi(unsigned char *prototypes, int height, int width, float *maps, float **laplacefield, float **gradientx, float **gradienty, int num_it, float hx, float hy, unsigned char label_cortex, int debug) {
+   The main pass and the retry pass apply the same rule; in 3D they differ by a
+   tolerance, but distanceYezzi has no 2D equivalent of it. */
+int thickness2DYezzi(unsigned char *prototypes, int height, int width, float *maps, float **gradientx, float **gradienty, int num_it, float hx, float hy, unsigned char label_cortex, int debug) {
   int i, j, xr, yr, mapindex, newmapindex, d, l, flag, k, count;
   int neighbors[MAX_NEIGHBORS_2D];
-  float distf, r;
+  float distf;
   struct index_list list1, list2, list_aux;
   int max_number_in_list = 50000;
   unsigned char *prot_copia;
@@ -126,11 +115,6 @@ int thickness2DYezzi(unsigned char *prototypes, int height, int width, float *ma
 
   for (l = 0; l < num_it; l++) {
     d = 0;
-    if (l == 0) {
-      r = 0.3;
-    } else {
-      r = 0.04;
-    }
     if (debug == 1) {
       printf("iteration %d\n", l);
     }
@@ -158,7 +142,7 @@ int thickness2DYezzi(unsigned char *prototypes, int height, int width, float *ma
           yr = maptoy(newmapindex, width);
           if (prot_copia[newmapindex] == label_cortex) {
             /* Compute new distance */
-            distf = distanceYezzi(gradientx, gradienty, newmapindex, xr, yr, maps, width, 0.00, hx, hy);
+            distf = distanceYezzi(gradientx, gradienty, newmapindex, xr, yr, maps, width, hx, hy);
 
             if (distf > 0) {
               maps[newmapindex] = distf;
@@ -192,7 +176,7 @@ int thickness2DYezzi(unsigned char *prototypes, int height, int width, float *ma
           yr = maptoy(newmapindex, width);
           if (prot_copia[newmapindex] == label_cortex) {
             /* Compute new distance */
-            distf = distanceYezzi(gradientx, gradienty, newmapindex, xr, yr, maps, width, r, hx, hy);
+            distf = distanceYezzi(gradientx, gradienty, newmapindex, xr, yr, maps, width, hx, hy);
 
             if (distf > 0) {
               maps[newmapindex] = distf;
@@ -226,10 +210,10 @@ int thickness2DYezzi(unsigned char *prototypes, int height, int width, float *ma
 /* Reverse-direction counterpart of thickness2DYezzi: propagates outward from
    the pixels labeled 1 instead of 0, using distanceYezzi_reverse. Produces the
    thickness map measured from the opposite boundary. */
-int thickness2DYezzi_reverse(unsigned char *prototypes, int height, int width, float *maps, float **laplacefield, float **gradientx, float **gradienty, int num_it, float hx, float hy, unsigned char label_cortex, int debug) {
+int thickness2DYezzi_reverse(unsigned char *prototypes, int height, int width, float *maps, float **gradientx, float **gradienty, int num_it, float hx, float hy, unsigned char label_cortex, int debug) {
   int i, j, xr, yr, mapindex, newmapindex, d, flag, l, k, count;
   int neighbors[MAX_NEIGHBORS_2D];
-  float distf, r;
+  float distf;
   struct index_list list1, list2, list_aux;
   int max_number_in_list = 50000;
   unsigned char *prot_copia;
@@ -249,11 +233,6 @@ int thickness2DYezzi_reverse(unsigned char *prototypes, int height, int width, f
 
   for (l = 0; l < num_it; l++) {
     d = 0;
-    if (l == 0) {
-      r = 0.08;
-    } else {
-      r = 0.00;
-    }
     if (debug == 1) {
       printf("iteration %d\n", l);
     }
@@ -282,7 +261,7 @@ int thickness2DYezzi_reverse(unsigned char *prototypes, int height, int width, f
           yr = maptoy(newmapindex, width);
           if (prot_copia[newmapindex] == label_cortex) {
             /* Compute new distance */
-            distf = distanceYezzi_reverse(gradientx, gradienty, newmapindex, xr, yr, maps, width, 0.000, hx, hy);
+            distf = distanceYezzi_reverse(gradientx, gradienty, newmapindex, xr, yr, maps, width, hx, hy);
 
             if (distf > 0) {
               flag = 1;
@@ -316,7 +295,7 @@ int thickness2DYezzi_reverse(unsigned char *prototypes, int height, int width, f
           yr = maptoy(newmapindex, width);
           if (prot_copia[newmapindex] == label_cortex) {
             /* Compute new distance */
-            distf = distanceYezzi_reverse(gradientx, gradienty, newmapindex, xr, yr, maps, width, r, hx, hy);
+            distf = distanceYezzi_reverse(gradientx, gradienty, newmapindex, xr, yr, maps, width, hx, hy);
 
             if (distf > 0) {
               maps[newmapindex] = distf;
@@ -439,10 +418,10 @@ float getnewcoordinates(int *newx, int *newy, int x, int y, int width, float gra
    (via getnewcoordinates) until it reaches the far boundary, copying the
    corresponding value from a precomputed `input_maps`. */
 int thickness2Dgradient(unsigned char *prototypes, int height, int width, float *input_maps,
-                        float *maps, float **laplacefield, float **gradientx, float **gradienty) {
-  int i, j, x, y, xr, yr, newx, newy, provx, provy, mapindex, newmapindex, provmapindex, aux, d;
+                        float *maps, float **gradientx, float **gradienty) {
+  int i, j, x, y, newx, newy, mapindex, newmapindex, d;
   int counter = 0;
-  float distf, xf, yf, new_angle_error;
+  float new_angle_error;
   float *angle_error;
   int numelemaislados = 0;
   struct index_list list1, list2, list3;

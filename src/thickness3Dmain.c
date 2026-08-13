@@ -13,11 +13,6 @@
 #include "png_write.h"
 #include "compute_boundary_cortex3D.h"
 
-int numrechazos = 0;
-int numasignaciones = 0;
-int asignacionesraras = 0;
-int numPrototypes;
-
 int main(int argc, char *argv[]) {
   unsigned char *input;
   unsigned short *input_short;
@@ -27,17 +22,16 @@ int main(int argc, char *argv[]) {
   float ***laplacefield, ***gradientx, ***gradienty, ***gradientz;
   float lambda = 0.5, mean, sigma = 0;
   float hx = 1, hy = 1, hz = 1;
-  int i, j, k, col, row, c, option_index, swapbyte = 0, compute_mean = 0, thickness_DT = 0;
+  int i, k, c, option_index, swapbyte = 0, compute_mean = 0, thickness_DT = 0;
   int height = 256, width = 256, depth = 1;
   int num_it = 10, iterations_laplace = 100, reverse = 0, suma = 0;
   int debug = 0, knee = 0, label_wm = 3, label_cortex = 2;
-  FILE *fp, *fg;
+  FILE *fp;
   struct timeval startinit;
   struct timeval endinit;
   struct timeval endtotal;
   char input_prefix[200];
   char inputfile[200], outputfile[200], extension[6];
-  char *laplacefile;
   unsigned char *aux, *l;
 
   while (1) {
@@ -362,11 +356,11 @@ int main(int argc, char *argv[]) {
     gettimeofday(&endinit, NULL);
     if (suma == 0) {
       if (reverse == 0) {
-        if (thickness3DYezzi(input, height, width, depth, maps, laplacefield, gradientx, gradienty, gradientz, num_it, hx, hy, hz) == 1) {
+        if (thickness3DYezzi(input, height, width, depth, maps, gradientx, gradienty, gradientz, num_it, hx, hy, hz) == 1) {
           printf("Error in thickness3D\n");
         }
       } else {
-        if (thickness3DYezzi_reverse(input, height, width, depth, maps, laplacefield, gradientx, gradienty, gradientz, num_it, hx, hy, hz) == 1) {
+        if (thickness3DYezzi_reverse(input, height, width, depth, maps, gradientx, gradienty, gradientz, num_it, hx, hy, hz) == 1) {
           printf("Error in thickness3D\n");
         }
       }
@@ -374,10 +368,10 @@ int main(int argc, char *argv[]) {
 
     if (suma == 1) {
       maps_reverse = (float *)malloc(sizeof(float) * height * width * depth);
-      if (thickness3DYezzi(input, height, width, depth, maps, laplacefield, gradientx, gradienty, gradientz, num_it, hx, hy, hz) == 1) {
+      if (thickness3DYezzi(input, height, width, depth, maps, gradientx, gradienty, gradientz, num_it, hx, hy, hz) == 1) {
         printf("Error in thickness3D\n");
       }
-      if (thickness3DYezzi_reverse(input, height, width, depth, maps_reverse, laplacefield, gradientx, gradienty, gradientz, num_it, hx, hy, hz) == 1) {
+      if (thickness3DYezzi_reverse(input, height, width, depth, maps_reverse, gradientx, gradienty, gradientz, num_it, hx, hy, hz) == 1) {
         printf("Error in thickness3D\n");
       }
       relabel_float(maps, height * width * depth, -1, 0);
@@ -420,9 +414,9 @@ int main(int argc, char *argv[]) {
 
     if (suma == 0) {
       if (reverse == 1) {
-        DToptimo3d(input, height, width, depth, 1, dist_maps, 1, 2, debug, hx, hy, hz);
+        DToptimo3d(input, height, width, depth, 1, dist_maps, 1, 2, hx, hy, hz);
       } else {
-        DToptimo3d(input, height, width, depth, 1, dist_maps, 0, 2, debug, hx, hy, hz);
+        DToptimo3d(input, height, width, depth, 1, dist_maps, 0, 2, hx, hy, hz);
       }
       relabel_float(dist_maps[2], height * width * depth, 999999, 0);
     }
@@ -431,8 +425,8 @@ int main(int argc, char *argv[]) {
       dist_maps_reverse[0] = (float *)malloc(sizeof(float) * height * width * depth);
       dist_maps_reverse[1] = (float *)malloc(sizeof(float) * height * width * depth);
       dist_maps_reverse[2] = (float *)malloc(sizeof(float) * height * width * depth);
-      DToptimo3d(input, height, width, depth, 1, dist_maps, 1, 2, debug, hx, hy, hz);
-      DToptimo3d(input, height, width, depth, 1, dist_maps_reverse, 0, 2, debug, hx, hy, hz);
+      DToptimo3d(input, height, width, depth, 1, dist_maps, 1, 2, hx, hy, hz);
+      DToptimo3d(input, height, width, depth, 1, dist_maps_reverse, 0, 2, hx, hy, hz);
       relabel_float(dist_maps[2], height * width * depth, 999999, 0);
       relabel_float(dist_maps_reverse[2], height * width * depth, 999999, 0);
       sumar_l1l2(dist_maps[2], dist_maps_reverse[2], dist_maps[2], height * width * depth);

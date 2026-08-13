@@ -32,6 +32,7 @@ int laplace3D(unsigned char *input, int height, int width, int depth, float ***o
 int laplace3D_voxelsize(unsigned char *input, int height, int width, int depth, float ***output, int iterations, float hx, float hy, float hz, float lambda);
 int RelabelBoundary3D(unsigned char *domain, int height, int width, int depth);
 int EdgeDetect3D(unsigned char *domain, int height, int width, int depth);
+int EdgeDetect3D_knee(unsigned char *domain, int height, int width, int depth);
 int normalize3D(float ***gradientx, float ***gradienty, float ***gradientz, int height, int width, int depth);
 int iGradX(float **ppfData, float **ppfGradient, int numRowX, int numColY);
 int iGradY(float **ppfData, float **ppfGradient, int numRowX, int numColY);

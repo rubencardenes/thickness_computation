@@ -4,7 +4,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <math.h>
 #include "laplace3D.h"
 
 /* Input values
