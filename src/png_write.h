@@ -6,7 +6,7 @@
 
 /* Color modes for PNG output (same convention as geodesicDT2d):
      0 = grayscale, 1 = red-blue, 2 = random */
-#define COLOR_GRAY   0
+#define COLOR_GRAY 0
 #define COLOR_REDBLUE 1
 #define COLOR_RANDOM 2
 

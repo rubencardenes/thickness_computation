@@ -3,8 +3,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-long fileSize(char *fname)
-{
+long fileSize(char *fname) {
   struct stat statBuf;
 
   if (stat(fname, &statBuf) == -1) {
@@ -14,7 +13,7 @@ long fileSize(char *fname)
   return statBuf.st_size;
 }
 
-int main(int argc,char** argv){
+int main(int argc, char **argv) {
   FILE *fp = NULL;
   float *data = NULL;
   unsigned short *dataout;
@@ -25,29 +24,29 @@ int main(int argc,char** argv){
     printf("Usage: float2ushort filein fileout\n");
     return 1;
   }
-  fp = fopen(argv[1],"r");
+  fp = fopen(argv[1], "r");
   if (fp == NULL) {
     printf("No such file \n");
     return 1;
   }
-  npixels = (int)fileSize(argv[1])/4;
+  npixels = (int)fileSize(argv[1]) / 4;
   printf("size: %d \n", npixels);
-  data = (float *)malloc(sizeof(float)*npixels);
+  data = (float *)malloc(sizeof(float) * npixels);
   if (fread(data, sizeof(float), npixels, fp) == 0) {
-    fprintf(stderr,"Failed reading the data\n");
+    fprintf(stderr, "Failed reading the data\n");
     fclose(fp);
     free(data);
     return -1;
   }
 
-  dataout = (unsigned short *)malloc(sizeof(unsigned short)*npixels);
-  for (i=0;i<npixels;i++) {
-    dataout[i]=(unsigned short)data[i];
+  dataout = (unsigned short *)malloc(sizeof(unsigned short) * npixels);
+  for (i = 0; i < npixels; i++) {
+    dataout[i] = (unsigned short)data[i];
   }
-  
+
   fclose(fp);
-  fp = fopen(argv[2],"w");
-  fwrite(dataout,sizeof(unsigned short),npixels,fp);
+  fp = fopen(argv[2], "w");
+  fwrite(dataout, sizeof(unsigned short), npixels, fp);
 
   free(data);
   free(dataout);
@@ -55,12 +54,3 @@ int main(int argc,char** argv){
   printf("float2ushort OK\n");
   return 0;
 }
-
-
-
-
-
-
-
-
-
