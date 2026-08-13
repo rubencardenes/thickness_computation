@@ -24,11 +24,11 @@ unsigned char *load_png_gray(const char *filename, int *width, int *height) {
 }
 
 int png_has_extension(const char *filename) {
-  int n = (int) strlen(filename);
-  return (n >= 4 && filename[n-4] == '.' &&
-          (filename[n-3] == 'p' || filename[n-3] == 'P') &&
-          (filename[n-2] == 'n' || filename[n-2] == 'N') &&
-          (filename[n-1] == 'g' || filename[n-1] == 'G'));
+  int n = (int)strlen(filename);
+  return (n >= 4 && filename[n - 4] == '.' &&
+          (filename[n - 3] == 'p' || filename[n - 3] == 'P') &&
+          (filename[n - 2] == 'n' || filename[n - 2] == 'N') &&
+          (filename[n - 1] == 'g' || filename[n - 1] == 'G'));
 }
 
 /* --- Color lookup tables (3 rows R,G,B of 256 entries) --- */
@@ -36,15 +36,15 @@ int png_has_extension(const char *filename) {
 static void get_redblue_lut(unsigned char lut[3][256]) {
   int i;
   for (i = 0; i < 256; i++) {
-    lut[0][i] = (unsigned char)(255 - i);  /* R */
-    lut[1][i] = 0;                          /* G */
-    lut[2][i] = (unsigned char) i;          /* B */
+    lut[0][i] = (unsigned char)(255 - i); /* R */
+    lut[1][i] = 0;                        /* G */
+    lut[2][i] = (unsigned char)i;         /* B */
   }
 }
 
 static void get_random_lut(unsigned char lut[3][256]) {
   int i;
-  srand((unsigned) time(NULL));
+  srand((unsigned)time(NULL));
   for (i = 0; i < 256; i++) {
     lut[0][i] = (unsigned char)(rand() % 256);
     lut[1][i] = (unsigned char)(rand() % 256);
@@ -78,8 +78,13 @@ static void normalize_to_u8(const float *data, int n, int zero_anchored,
     int seen = 0;
     for (i = 0; i < n; i++) {
       if (!isfinite(data[i])) continue;
-      if (!seen) { mn = mx = data[i]; seen = 1; }
-      else { if (data[i] < mn) mn = data[i]; if (data[i] > mx) mx = data[i]; }
+      if (!seen) {
+        mn = mx = data[i];
+        seen = 1;
+      } else {
+        if (data[i] < mn) mn = data[i];
+        if (data[i] > mx) mx = data[i];
+      }
     }
     range = mx - mn;
     for (i = 0; i < n; i++) {
@@ -101,7 +106,7 @@ int write_png_from_float(const char *filename, const float *data,
   unsigned char *norm;
 
   if (width <= 0 || height <= 0) return 1;
-  norm = (unsigned char *) malloc((size_t) n);
+  norm = (unsigned char *)malloc((size_t)n);
   if (!norm) return 1;
   normalize_to_u8(data, n, zero_anchored, norm);
 
@@ -109,10 +114,13 @@ int write_png_from_float(const char *filename, const float *data,
     ok = stbi_write_png(filename, width, height, 1, norm, width);
   } else {
     unsigned char lut[3][256];
-    unsigned char *rgb = (unsigned char *) malloc((size_t) n * 3);
-    if (!rgb) { free(norm); return 1; }
+    unsigned char *rgb = (unsigned char *)malloc((size_t)n * 3);
+    if (!rgb) {
+      free(norm);
+      return 1;
+    }
     if (color_mode == COLOR_RANDOM) get_random_lut(lut);
-    else                            get_redblue_lut(lut);  /* default red-blue */
+    else get_redblue_lut(lut); /* default red-blue */
     for (i = 0; i < n; i++) {
       int idx, background;
       if (color_mode == COLOR_RANDOM) {
@@ -121,19 +129,19 @@ int write_png_from_float(const char *filename, const float *data,
            whole unit instead of changing color at every normalized step. */
         float fv = data[i];
         background = (!isfinite(fv) || fv <= 0.0f);
-        idx = (int) fv;                 /* floor, since fv > 0 here */
+        idx = (int)fv; /* floor, since fv > 0 here */
         if (idx > 255) idx = 255;
       } else {
         /* red-blue: continuous gradient through the normalized value. */
         idx = norm[i];
         background = (idx == 0);
       }
-      if (background) {                 /* background stays black */
-        rgb[3*i] = rgb[3*i+1] = rgb[3*i+2] = 0;
+      if (background) { /* background stays black */
+        rgb[3 * i] = rgb[3 * i + 1] = rgb[3 * i + 2] = 0;
       } else {
-        rgb[3*i]   = lut[0][idx];
-        rgb[3*i+1] = lut[1][idx];
-        rgb[3*i+2] = lut[2][idx];
+        rgb[3 * i] = lut[0][idx];
+        rgb[3 * i + 1] = lut[1][idx];
+        rgb[3 * i + 2] = lut[2][idx];
       }
     }
     ok = stbi_write_png(filename, width, height, 3, rgb, width * 3);
@@ -154,16 +162,19 @@ int print_domain_values(const unsigned char *data, int n, unsigned char present[
   for (i = 0; i < n; i++) present[data[i]] = 1;
   printf("Domain values present:");
   for (i = 0; i < 256; i++) {
-    if (present[i]) { printf(" %d", i); count++; }
+    if (present[i]) {
+      printf(" %d", i);
+      count++;
+    }
   }
   printf("\n");
-  fflush(stdout);  /* so these values appear before any stderr error that follows */
+  fflush(stdout); /* so these values appear before any stderr error that follows */
   return count;
 }
 
 int print_domain_values_ushort(const unsigned short *data, int n, unsigned char present[256]) {
   int i, v, count = 0;
-  unsigned char *seen = (unsigned char *) calloc(65536, 1);
+  unsigned char *seen = (unsigned char *)calloc(65536, 1);
   memset(present, 0, 256);
   if (!seen) return 0;
   for (i = 0; i < n; i++) seen[data[i]] = 1;
@@ -201,7 +212,7 @@ int write_float_output(const char *filename, const float *data,
     fprintf(stderr, "Failed writing output %s\n", filename);
     return 1;
   }
-  fwrite(data, sizeof(float), (size_t) width * height, fp);
+  fwrite(data, sizeof(float), (size_t)width * height, fp);
   fclose(fp);
   return 0;
 }

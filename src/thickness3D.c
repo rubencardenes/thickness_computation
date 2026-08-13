@@ -17,89 +17,53 @@ extern int numasignaciones;
 extern int asignacionesraras;
 extern int numPrototypes;
 int highestIndexClass;
-int actualDimension; 
+int actualDimension;
 int numPrototypesInClass[MAXCLASSNUMBER];
 char buffer[2048];
 int pdim;
 
-int mapIndex3D(int r,int c,int z, int nr,int nc,int nz)
-{
-  if (c >= nc) return -1;
-  if (c < 0) return -1;
-  if (r >= nr) return -1;
-  if (r < 0) return -1;
-  if (z >= nz) return -1;
-  if (z < 0) return -1;
-  return c + r * nc + z * nr * nc;
-}
-
-int mapIndex2D(int r,int c, int nr,int nc)
-{
-  if (c >= nc) return -1;
-  if (c < 0) return -1;
-  if (r >= nr) return -1;
-  if (r < 0) return -1;
-  return c + r * nc;
-}
-
-void print_timing(FILE *fp, struct timeval start, struct timeval end) 
-{
-  double tuend = 1e-06*(double)end.tv_usec; \
-  double tustart = 1e-06*(double)start.tv_usec; \
-  double tend = end.tv_sec + tuend;\
-  double tstart = start.tv_sec + tustart;\
-  fprintf(fp,"Elapsed time: %g\n", (tend - tstart) ); \
-}
-
-int maximo(int a,int b) {
-  if (a > b) {
-    return a;
-  } else {
-    return b;
-  }
-}
-
-float distance(int x1,int y1,int x2,int y2) {
-  return sqrt ((x1-x2) * (x1-x2) + (y1-y2) * (y1-y2));
-}
-
-float distanceYezzi_reverse3D_relax(float ***gradientx,float ***gradienty,float ***gradientz,int newmapindex, int x, int y,int z,float *maps,int height,int width, float r,float hx,float hy,float hz) {
+/* 3D Yezzi PDE thickness propagation, reverse direction, "relaxed" variant:
+   combines whichever of the up to 6 axis-neighbor values (x/y/z) are already
+   propagated, with no per-axis tolerance rejection (unlike distanceYezzi_reverse3D).
+   Used on the first pass, when few neighbors are populated yet. Returns -1 if
+   none of the 6 neighbors have been reached. */
+float distanceYezzi_reverse3D_relax(float ***gradientx, float ***gradienty, float ***gradientz, int newmapindex, int x, int y, int z, float *maps, int height, int width, float r, float hx, float hy, float hz) {
   float distf;
   int flag = 0;
-  
+
   distf = 1.0;
-  if (gradientx[z][y][x] > 0) { 
-    if (maps[newmapindex+1] > -1) {
-      distf += fabs(gradientx[z][y][x])*maps[newmapindex+1]/hx;
+  if (gradientx[z][y][x] > 0) {
+    if (maps[newmapindex + 1] > -1) {
+      distf += fabs(gradientx[z][y][x]) * maps[newmapindex + 1] / hx;
       flag = 1;
     }
-  } else if(gradientx[z][y][x] < 0) {
-    if (maps[newmapindex-1] > -1) {
-      distf += fabs(gradientx[z][y][x])*maps[newmapindex-1]/hx;
+  } else if (gradientx[z][y][x] < 0) {
+    if (maps[newmapindex - 1] > -1) {
+      distf += fabs(gradientx[z][y][x]) * maps[newmapindex - 1] / hx;
       flag = 1;
     }
   }
 
   if (gradienty[z][y][x] > 0) {
-    if (maps[newmapindex+width] > -1) { 
-      distf += fabs(gradienty[z][y][x])*maps[newmapindex+width]/hy;
+    if (maps[newmapindex + width] > -1) {
+      distf += fabs(gradienty[z][y][x]) * maps[newmapindex + width] / hy;
       flag = 1;
     }
-  } else if(gradienty[z][y][x] < 0)  {
-    if (maps[newmapindex-width] > -1) { 
-      distf += fabs(gradienty[z][y][x])*maps[newmapindex-width]/hy;
+  } else if (gradienty[z][y][x] < 0) {
+    if (maps[newmapindex - width] > -1) {
+      distf += fabs(gradienty[z][y][x]) * maps[newmapindex - width] / hy;
       flag = 1;
-    }    
+    }
   }
 
   if (gradientz[z][y][x] > 0) {
-    if (maps[newmapindex+height*width] > -1) {
-      distf += fabs(gradientz[z][y][x])*maps[newmapindex+height*width]/hz;
+    if (maps[newmapindex + height * width] > -1) {
+      distf += fabs(gradientz[z][y][x]) * maps[newmapindex + height * width] / hz;
       flag = 1;
     }
   } else if (gradientz[z][y][x] < 0) {
-    if (maps[newmapindex-height*width] > -1) {
-      distf += fabs(gradientz[z][y][x])*maps[newmapindex-height*width]/hz;
+    if (maps[newmapindex - height * width] > -1) {
+      distf += fabs(gradientz[z][y][x]) * maps[newmapindex - height * width] / hz;
       flag = 1;
     }
   }
@@ -107,48 +71,49 @@ float distanceYezzi_reverse3D_relax(float ***gradientx,float ***gradienty,float 
   if (flag == 0) {
     distf = -1;
   } else {
-    distf = distf/(fabs(gradientx[z][y][x])/hx + fabs(gradienty[z][y][x])/hy + fabs(gradientz[z][y][x])/hz);   
+    distf = distf / (fabs(gradientx[z][y][x]) / hx + fabs(gradienty[z][y][x]) / hy + fabs(gradientz[z][y][x]) / hz);
   }
 
   return distf;
 }
 
-float distanceYezzi3D_relax(float ***gradientx,float ***gradienty,float ***gradientz,int newmapindex,int x, int y,int z, float *maps,int height,int width,float r,float hx, float hy, float hz) {
+/* Forward-direction counterpart of distanceYezzi_reverse3D_relax. */
+float distanceYezzi3D_relax(float ***gradientx, float ***gradienty, float ***gradientz, int newmapindex, int x, int y, int z, float *maps, int height, int width, float r, float hx, float hy, float hz) {
   float distf;
   int flag = 0;
 
   distf = 1.0;
-  if (gradientx[z][y][x] < 0) { 	      
-    if (maps[newmapindex+1] > -1) {
+  if (gradientx[z][y][x] < 0) {
+    if (maps[newmapindex + 1] > -1) {
       flag = 1;
-      distf += fabs(gradientx[z][y][x])*maps[newmapindex+1]/hx;
-    }    	     
+      distf += fabs(gradientx[z][y][x]) * maps[newmapindex + 1] / hx;
+    }
   } else {
-    if (maps[newmapindex-1] > -1) {     
+    if (maps[newmapindex - 1] > -1) {
       flag = 1;
-      distf += fabs(gradientx[z][y][x])*maps[newmapindex-1]/hx;
+      distf += fabs(gradientx[z][y][x]) * maps[newmapindex - 1] / hx;
     }
   }
-  if (gradienty[z][y][x] < 0) {    
-    if (maps[newmapindex+width] > -1) {
-      distf += fabs(gradienty[z][y][x])*maps[newmapindex+width]/hy;
+  if (gradienty[z][y][x] < 0) {
+    if (maps[newmapindex + width] > -1) {
+      distf += fabs(gradienty[z][y][x]) * maps[newmapindex + width] / hy;
       flag = 1;
     }
-  } else {    
-    if (maps[newmapindex-width] > -1) {
-      distf += fabs(gradienty[z][y][x])*maps[newmapindex-width]/hy;
+  } else {
+    if (maps[newmapindex - width] > -1) {
+      distf += fabs(gradienty[z][y][x]) * maps[newmapindex - width] / hy;
       flag = 1;
     }
   }
 
   if (gradientz[z][y][x] < 0) {
-    if (maps[newmapindex+height*width] > -1) {
-      distf += fabs(gradientz[z][y][x])*maps[newmapindex+height*width]/hz;
+    if (maps[newmapindex + height * width] > -1) {
+      distf += fabs(gradientz[z][y][x]) * maps[newmapindex + height * width] / hz;
       flag = 1;
     }
   } else {
-    if (maps[newmapindex-height*width] > -1) {
-      distf += fabs(gradientz[z][y][x])*maps[newmapindex-height*width]/hz;
+    if (maps[newmapindex - height * width] > -1) {
+      distf += fabs(gradientz[z][y][x]) * maps[newmapindex - height * width] / hz;
       flag = 1;
     }
   }
@@ -156,349 +121,325 @@ float distanceYezzi3D_relax(float ***gradientx,float ***gradienty,float ***gradi
   if (flag == 0) {
     distf = -1;
   } else {
-    distf = distf/(fabs(gradientx[z][y][x])/hx + fabs(gradienty[z][y][x])/hy + fabs(gradientz[z][y][x])/hz);
+    distf = distf / (fabs(gradientx[z][y][x]) / hx + fabs(gradienty[z][y][x]) / hy + fabs(gradientz[z][y][x]) / hz);
   }
   return distf;
 }
 
-float distanceYezzi_reverse3D(float ***gradientx,float ***gradienty,float ***gradientz,int newmapindex, int x, int y,int z,float *maps,int height,int width, float r,float hx,float hy,float hz) {
+/* Estimates the thickness value at (x,y,z) from the upstream x/y/z neighbors
+   indicated by the Laplace gradient, rejecting the update (-1) if an upstream
+   neighbor hasn't been reached yet and its gradient component exceeds tolerance
+   r. Used by thickness3DYezzi_reverse once the front is past its first, relaxed
+   pass. Unlike the 2D distanceYezzi_reverse, this one really does apply `r`. */
+float distanceYezzi_reverse3D(float ***gradientx, float ***gradienty, float ***gradientz, int newmapindex, int x, int y, int z, float *maps, int height, int width, float r, float hx, float hy, float hz) {
   float distf;
 
-  if (gradientx[z][y][x] > 0) { 
-    if (maps[newmapindex+1] == -1 && fabs(gradientx[z][y][x]) > r ) {
+  if (gradientx[z][y][x] > 0) {
+    if (maps[newmapindex + 1] == -1 && fabs(gradientx[z][y][x]) > r) {
       return -1;
     } else {
-      if (maps[newmapindex+1] == -1) { 
-	distf = 1.0;
+      if (maps[newmapindex + 1] == -1) {
+        distf = 1.0;
       } else {
-	distf = 1.0 + fabs(gradientx[z][y][x])*maps[newmapindex+1]/hx;	      
+        distf = 1.0 + fabs(gradientx[z][y][x]) * maps[newmapindex + 1] / hx;
       }
     }
   } else {
-    if (maps[newmapindex-1] == -1 && fabs(gradientx[z][y][x]) > r ) {
+    if (maps[newmapindex - 1] == -1 && fabs(gradientx[z][y][x]) > r) {
       return -1;
     } else {
-      if (maps[newmapindex-1] == -1) { 
-	distf = 1.0;
+      if (maps[newmapindex - 1] == -1) {
+        distf = 1.0;
       } else {
-	distf = 1.0 + fabs(gradientx[z][y][x])*maps[newmapindex-1]/hx;
+        distf = 1.0 + fabs(gradientx[z][y][x]) * maps[newmapindex - 1] / hx;
       }
     }
   }
   if (gradienty[z][y][x] > 0) {
-    if (maps[newmapindex+width] == -1 && fabs(gradienty[z][y][x]) > r ) {
+    if (maps[newmapindex + width] == -1 && fabs(gradienty[z][y][x]) > r) {
       return -1;
     } else {
-      if (maps[newmapindex+width] > -1) { 
-	distf += fabs(gradienty[z][y][x])*maps[newmapindex+width]/hy;
+      if (maps[newmapindex + width] > -1) {
+        distf += fabs(gradienty[z][y][x]) * maps[newmapindex + width] / hy;
       }
     }
   } else {
-    if (maps[newmapindex-width] == -1 && fabs(gradienty[z][y][x]) > r ) {
+    if (maps[newmapindex - width] == -1 && fabs(gradienty[z][y][x]) > r) {
       return -1;
     } else {
-      if (maps[newmapindex-width] > -1) { 
-	distf += fabs(gradienty[z][y][x])*maps[newmapindex-width]/hy;
+      if (maps[newmapindex - width] > -1) {
+        distf += fabs(gradienty[z][y][x]) * maps[newmapindex - width] / hy;
       }
     }
   }
 
   if (gradientz[z][y][x] > 0) {
-    if (maps[newmapindex+height*width] == -1 && fabs(gradientz[z][y][x]) > r) {
+    if (maps[newmapindex + height * width] == -1 && fabs(gradientz[z][y][x]) > r) {
       return -1;
     } else {
-      if (maps[newmapindex+height*width] > -1) {
-	distf += fabs(gradientz[z][y][x])*maps[newmapindex+height*width]/hz;
+      if (maps[newmapindex + height * width] > -1) {
+        distf += fabs(gradientz[z][y][x]) * maps[newmapindex + height * width] / hz;
       }
     }
   } else {
-    if (maps[newmapindex-height*width] == -1 && fabs(gradientz[z][y][x]) > r) {
+    if (maps[newmapindex - height * width] == -1 && fabs(gradientz[z][y][x]) > r) {
       return -1;
-    }  else {
-      if (maps[newmapindex-height*width] > -1 ) {
-	distf += fabs(gradientz[z][y][x])*maps[newmapindex-height*width]/hz;
+    } else {
+      if (maps[newmapindex - height * width] > -1) {
+        distf += fabs(gradientz[z][y][x]) * maps[newmapindex - height * width] / hz;
       }
     }
   }
- 
-  distf = distf/(fabs(gradientx[z][y][x])/hx + fabs(gradienty[z][y][x])/hy + fabs(gradientz[z][y][x])/hz);
- 
+
+  distf = distf / (fabs(gradientx[z][y][x]) / hx + fabs(gradienty[z][y][x]) / hy + fabs(gradientz[z][y][x]) / hz);
+
   return distf;
 }
 
-float distanceYezzi3D(float ***gradientx,float ***gradienty,float ***gradientz,int newmapindex,int x, int y,int z, float *maps,int height,int width,float r,float hx, float hy, float hz) {
+/* Forward-direction counterpart of distanceYezzi_reverse3D; used by
+   thickness3DYezzi once the front is past its first, relaxed pass. */
+float distanceYezzi3D(float ***gradientx, float ***gradienty, float ***gradientz, int newmapindex, int x, int y, int z, float *maps, int height, int width, float r, float hx, float hy, float hz) {
   float distf;
-  if (gradientx[z][y][x] < 0) { 	      
-    if (maps[newmapindex+1] == -1 && fabs(gradientx[z][y][x]) > r) {
+  if (gradientx[z][y][x] < 0) {
+    if (maps[newmapindex + 1] == -1 && fabs(gradientx[z][y][x]) > r) {
       return -1;
     } else {
-      if (maps[newmapindex+1] == -1) {
-	distf = 1.0;
+      if (maps[newmapindex + 1] == -1) {
+        distf = 1.0;
       } else {
-	distf = 1.0 + fabs(gradientx[z][y][x])*maps[newmapindex+1]/hx;
+        distf = 1.0 + fabs(gradientx[z][y][x]) * maps[newmapindex + 1] / hx;
       }
-    }	      
+    }
   } else {
-    if (maps[newmapindex-1] == -1 && fabs(gradientx[z][y][x]) > r) {
+    if (maps[newmapindex - 1] == -1 && fabs(gradientx[z][y][x]) > r) {
       return -1;
     } else {
-      if (maps[newmapindex-1] == -1) {
-	distf = 1.0;
-      } else { 
-	distf = 1.0 + fabs(gradientx[z][y][x])*maps[newmapindex-1]/hx;
+      if (maps[newmapindex - 1] == -1) {
+        distf = 1.0;
+      } else {
+        distf = 1.0 + fabs(gradientx[z][y][x]) * maps[newmapindex - 1] / hx;
       }
     }
   }
   if (gradienty[z][y][x] < 0) {
-    if (maps[newmapindex+width] == -1 && fabs(gradienty[z][y][x]) > r) {
+    if (maps[newmapindex + width] == -1 && fabs(gradienty[z][y][x]) > r) {
       return -1;
     } else {
-      if (maps[newmapindex+width] > -1) {
-	distf += fabs(gradienty[z][y][x])*maps[newmapindex+width]/hy;
+      if (maps[newmapindex + width] > -1) {
+        distf += fabs(gradienty[z][y][x]) * maps[newmapindex + width] / hy;
       }
     }
   } else {
-    if (maps[newmapindex-width] == -1 && fabs(gradienty[z][y][x]) > r) {
+    if (maps[newmapindex - width] == -1 && fabs(gradienty[z][y][x]) > r) {
       return -1;
     } else {
-      if (maps[newmapindex-width] > -1) {
-	distf += fabs(gradienty[z][y][x])*maps[newmapindex-width]/hy;
+      if (maps[newmapindex - width] > -1) {
+        distf += fabs(gradienty[z][y][x]) * maps[newmapindex - width] / hy;
       }
     }
   }
 
   if (gradientz[z][y][x] < 0) {
-    if (maps[newmapindex+height*width] == -1 && fabs(gradientz[z][y][x]) > r) {
+    if (maps[newmapindex + height * width] == -1 && fabs(gradientz[z][y][x]) > r) {
       return -1;
     } else {
-      if (maps[newmapindex+height*width] > -1) {
-	distf += fabs(gradientz[z][y][x])*maps[newmapindex+height*width]/hz;
+      if (maps[newmapindex + height * width] > -1) {
+        distf += fabs(gradientz[z][y][x]) * maps[newmapindex + height * width] / hz;
       }
     }
   } else {
-    if (maps[newmapindex-height*width] == -1 && fabs(gradientz[z][y][x]) > r) {
+    if (maps[newmapindex - height * width] == -1 && fabs(gradientz[z][y][x]) > r) {
       return -1;
     } else {
-      if (maps[newmapindex-height*width] > -1) {
-	distf += fabs(gradientz[z][y][x])*maps[newmapindex-height*width]/hz;
+      if (maps[newmapindex - height * width] > -1) {
+        distf += fabs(gradientz[z][y][x]) * maps[newmapindex - height * width] / hz;
       }
     }
   }
 
-  distf = distf/(fabs(gradientx[z][y][x])/hx + fabs(gradienty[z][y][x])/hy + fabs(gradientz[z][y][x])/hz);
+  distf = distf / (fabs(gradientx[z][y][x]) / hx + fabs(gradienty[z][y][x]) / hy + fabs(gradientz[z][y][x]) / hz);
   return distf;
 }
 
-int thickness3DYezzi(unsigned char* prototypes,int height, int width, int depth, float *maps, float*** laplacefield,float*** gradientx, float*** gradienty, float*** gradientz, int num_it, float hx, float hy, float hz) {
-  int i,j,x,y,z,xr,yr,zr,mapindex,newmapindex,aux,d,l,flag;
-  int *index_aux;
-  float distf,r;
-  struct list {
-    int num_elem;
-    int *elem;
-  } list1; 
-  struct list list2,list_aux;
+/* 3D counterpart of thickness2DYezzi: propagates outward from the voxels
+   labeled 0 in `prototypes` (one boundary) across the domain (label 2),
+   6-connected, using distanceYezzi3D as the per-step update rule (and the
+   relaxed distanceYezzi3D_relax on the first iteration's retry pass, list_aux,
+   since few neighbors are populated yet). Runs num_it independent passes;
+   `maps` holds the final thickness values on return. */
+int thickness3DYezzi(unsigned char *prototypes, int height, int width, int depth, float *maps, float ***laplacefield, float ***gradientx, float ***gradienty, float ***gradientz, int num_it, float hx, float hy, float hz) {
+  int i, j, xr, yr, zr, mapindex, newmapindex, d, l, flag, k, count;
+  int neighbors[MAX_NEIGHBORS_3D_FACES];
+  float distf, r;
+  struct index_list list1, list2, list_aux;
   int max_number_in_list = 300000;
-  unsigned char* prot_copia;
-  
-  prot_copia = (unsigned char*)malloc(sizeof(unsigned char)*height*width*depth);
+  unsigned char *prot_copia;
 
-  for (j=0;j<height*width*depth;j++) {
+  prot_copia = (unsigned char *)malloc(sizeof(unsigned char) * height * width * depth);
+
+  for (j = 0; j < height * width * depth; j++) {
     maps[j] = -1;
     prot_copia[j] = prototypes[j];
   }
 
-  list1.elem = (int*)malloc(sizeof(int)*max_number_in_list);
-  list1.num_elem = 0;
+  list_init(&list1, max_number_in_list);
 
-  list2.elem = (int*)malloc(sizeof(int)*max_number_in_list);
-  list2.num_elem = 0;
-  
-  list_aux.elem = (int*)malloc(sizeof(int)*max_number_in_list);
-  list_aux.num_elem = 0;
+  list_init(&list2, max_number_in_list);
+
+  list_init(&list_aux, max_number_in_list);
   printf("iteration ");
-  for (l=0;l<num_it;l++) {
+  for (l = 0; l < num_it; l++) {
     d = 0;
     if (l == 0) {
-      r=0.3;
+      r = 0.3;
     } else {
-      r=0.0;
+      r = 0.0;
     }
-    printf("%02d\b\b",l);
+    printf("%02d\b\b", l);
     fflush(0);
-    for (i=0;i<height*width*depth;i++) {
-      prot_copia[i] =prototypes[i]; /* to recover the domain after the first iteration */
+    for (i = 0; i < height * width * depth; i++) {
+      prot_copia[i] = prototypes[i]; /* to recover the domain after the first iteration */
       if (prot_copia[i] == 0) {
-	if (list1.num_elem >= max_number_in_list) {
-	  printf("Error list1.num_elem >= %d\n",max_number_in_list);
-	  return 1;
-	}
-	list1.elem[list1.num_elem] = i;
-	list1.num_elem++;
-	maps[i]=0;
+        if (list_push(&list1, i) != 0) {
+          printf("Error list1.num_elem >= %d\n", max_number_in_list);
+          return 1;
+        }
+        maps[i] = 0;
       }
     }
 
     while (list1.num_elem != 0 || list2.num_elem != 0) {
       /* printf("num elem list1: %d\n",list1.num_elem);*/
       while (list1.num_elem != 0) {
-	/* Get element from list1 */
-	mapindex = list1.elem[list1.num_elem-1];
-	list1.num_elem--;
-	flag = 0;
-	for (z=-1;z<2;z++) {
-	  for (x=-1;x<2;x++) {
-	    for (y=-1;y<2;y++) {
-	      if ((abs(x) + abs(y) + abs(z))!=1) continue; /* 3D neighborhood of size 6*/
-	      newmapindex = mapindex + height*width*z + y*width + x;
-	      xr = maptox3d(newmapindex,height,width);
-	      yr = maptoy3d(newmapindex,height,width);
-	      zr = maptoz3d(newmapindex,height,width);
-	      if (xr < 0 || xr >= width || yr < 0 || yr >= height || zr < 0 || zr >= depth) continue;
-	      if (prot_copia[newmapindex] == 2) {
-		/* Compute new distance */
-		distf = distanceYezzi3D(gradientx,gradienty,gradientz,newmapindex,
-					xr,yr,zr,maps,height,width,r,hx,hy,hz);
+        /* Get element from list1 */
+        mapindex = list_pop(&list1);
+        flag = 0;
+        count = neighbors3D_faces(mapindex, height, width, depth, neighbors);
+        for (k = 0; k < count; k++) {
+          newmapindex = neighbors[k];
+          xr = maptox3d(newmapindex, height, width);
+          yr = maptoy3d(newmapindex, height, width);
+          zr = maptoz3d(newmapindex, height, width);
+          if (prot_copia[newmapindex] == 2) {
+            /* Compute new distance */
+            distf = distanceYezzi3D(gradientx, gradienty, gradientz, newmapindex,
+                                    xr, yr, zr, maps, height, width, r, hx, hy, hz);
 
-		if (distf > 0 && distf < INF) {
-		  if (fabs(maps[mapindex] - distf) < 1) {
-		    maps[newmapindex] = distf;
-		    flag = 1;
-		    /* Put new element in list2*/
-		    if (list2.num_elem >= max_number_in_list) {
-		      printf("Error list2.num_elem >= %d\n",max_number_in_list);
-		      return 1;
-		    }
-		    list2.elem[list2.num_elem] = newmapindex;
-		    list2.num_elem++;
-		    prot_copia[newmapindex] = 0;
-		  }
-		}
-	      }
-	    }
-	  }
-	}
-	if (flag == 0) {
-	  /* Ponemos en un lista auxiliar el punto que no pudo propagarse*/
-	  if (list_aux.num_elem >= max_number_in_list) {
-	    printf("Error list_aux.num_elem >= %d\n",max_number_in_list);
-	    return 1;
-	  }
-	  list_aux.elem[list_aux.num_elem] = mapindex;
-	  list_aux.num_elem++;
-	}
+            if (distf > 0 && distf < INF) {
+              if (fabs(maps[mapindex] - distf) < 1) {
+                maps[newmapindex] = distf;
+                flag = 1;
+                /* Put new element in list2*/
+                if (list_push(&list2, newmapindex) != 0) {
+                  printf("Error list2.num_elem >= %d\n", max_number_in_list);
+                  return 1;
+                }
+                prot_copia[newmapindex] = 0;
+              }
+            }
+          }
+        }
+        if (flag == 0) {
+          /* Ponemos en un lista auxiliar el punto que no pudo propagarse*/
+          if (list_push(&list_aux, mapindex) != 0) {
+            printf("Error list_aux.num_elem >= %d\n", max_number_in_list);
+            return 1;
+          }
+        }
       }
 
-      for (i=0;i<list_aux.num_elem;i++) {
-	/* while (list_aux.num_elem != 0) {    */
-	/* Get element from list1 */
-	mapindex = list_aux.elem[i];
-	for (z=-1;z<2;z++) {
-	  for (x=-1;x<2;x++) {
-	    for (y=-1;y<2;y++) {
-	      if ((abs(x) + abs(y) + abs(z))!=1) continue; /* 3D neighborhood of size 6*/
-	      newmapindex = mapindex + height*width*z + y*width + x;
-	      xr = maptox3d(newmapindex,height,width);
-	      yr = maptoy3d(newmapindex,height,width);
-	      zr = maptoz3d(newmapindex,height,width);
-	      if (xr < 0 || xr >= width || yr < 0 || yr >= height || zr < 0 || zr >= depth) continue;
-	      if (prot_copia[newmapindex] == 2) {
-		/* Compute new distance */
-		if (l==0) {
-		  distf = distanceYezzi3D_relax(gradientx,gradienty,gradientz,newmapindex,
-						xr,yr,zr,maps,height,width,r,hx,hy,hz);
-		} else {
-		  distf = distanceYezzi3D(gradientx,gradienty,gradientz,newmapindex,
-					  xr,yr,zr,maps,height,width,r,hx,hy,hz);
-		}
-		if (distf > 0 && distf < INF) {
-		  if (l==0 || fabs(maps[mapindex] - distf) < 1) {
-		    maps[newmapindex] = distf;
-		    /* Put new element in list2*/
-		    if (list2.num_elem >= max_number_in_list) {
-		      printf("Error list2.num_elem >= %d\n",max_number_in_list);
-		      return 1;
-		    }
-		    list2.elem[list2.num_elem] = newmapindex;
-		    list2.num_elem++;
-		    prot_copia[newmapindex] = 0;
-		  }
-		}
-	      }
-	    }
-	  }
-	}
+      for (i = 0; i < list_aux.num_elem; i++) {
+        /* while (list_aux.num_elem != 0) {    */
+        /* Get element from list1 */
+        mapindex = list_aux.elem[i];
+        count = neighbors3D_faces(mapindex, height, width, depth, neighbors);
+        for (k = 0; k < count; k++) {
+          newmapindex = neighbors[k];
+          xr = maptox3d(newmapindex, height, width);
+          yr = maptoy3d(newmapindex, height, width);
+          zr = maptoz3d(newmapindex, height, width);
+          if (prot_copia[newmapindex] == 2) {
+            /* Compute new distance */
+            if (l == 0) {
+              distf = distanceYezzi3D_relax(gradientx, gradienty, gradientz, newmapindex,
+                                            xr, yr, zr, maps, height, width, r, hx, hy, hz);
+            } else {
+              distf = distanceYezzi3D(gradientx, gradienty, gradientz, newmapindex,
+                                      xr, yr, zr, maps, height, width, r, hx, hy, hz);
+            }
+            if (distf > 0 && distf < INF) {
+              if (l == 0 || fabs(maps[mapindex] - distf) < 1) {
+                maps[newmapindex] = distf;
+                /* Put new element in list2*/
+                if (list_push(&list2, newmapindex) != 0) {
+                  printf("Error list2.num_elem >= %d\n", max_number_in_list);
+                  return 1;
+                }
+                prot_copia[newmapindex] = 0;
+              }
+            }
+          }
+        }
       }
-      list_aux.num_elem = 0;
+      list_clear(&list_aux);
       /* printf("num elem list2: %d\n",list2.num_elem);*/
       d++;
       /* swap(list1.elem,list2.elem); */
-      
-      index_aux = list1.elem;
-      list1.elem = list2.elem;
-      list2.elem = index_aux;
-      aux = list1.num_elem;
-      list1.num_elem = list2.num_elem;
-      list2.num_elem = aux;
-      }
-  }
-  printf("\nmaximum bucket = %d\n",d);
 
-  free(list1.elem);
-  free(list2.elem);
-  free(list_aux.elem);
+      list_swap(&list1, &list2);
+    }
+  }
+  printf("\nmaximum bucket = %d\n", d);
+
+  list_free(&list1);
+  list_free(&list2);
+  list_free(&list_aux);
   free(prot_copia);
   return 0; /* success */
 }
 
-int thickness3DYezzi_reverse(unsigned char* prototypes,int height, int width, int depth, float *maps, float*** laplacefield,float*** gradientx, float*** gradienty, float*** gradientz, int num_it, float hx, float hy, float hz) {
-  int i,j,x,y,z,xr,yr,zr,mapindex,newmapindex,chekmapindex,reject,aux,d,flag,l,ag;
-  int *index_aux;
-  float distf,r;
-  struct list {
-    int num_elem;
-    int *elem;
-  } list1; 
-  struct list list2,list_aux;
+/* Reverse-direction counterpart of thickness3DYezzi: propagates outward from
+   the voxels labeled 1 instead of 0, using distanceYezzi_reverse3D (and
+   distanceYezzi_reverse3D_relax on the first iteration's retry pass). */
+int thickness3DYezzi_reverse(unsigned char *prototypes, int height, int width, int depth, float *maps, float ***laplacefield, float ***gradientx, float ***gradienty, float ***gradientz, int num_it, float hx, float hy, float hz) {
+  int i, j, xr, yr, zr, mapindex, newmapindex, chekmapindex, reject, d, flag, l, ag, k, count;
+  int neighbors[MAX_NEIGHBORS_3D_FACES];
+  float distf, r;
+  struct index_list list1, list2, list_aux;
   int max_number_in_list = 300000;
-  unsigned char* prot_copia;
+  unsigned char *prot_copia;
   FILE *fp;
 
-  prot_copia = (unsigned char*)malloc(sizeof(unsigned char)*height*width*depth);
-  
-  for (j=0;j<height*width*depth;j++) {
+  prot_copia = (unsigned char *)malloc(sizeof(unsigned char) * height * width * depth);
+
+  for (j = 0; j < height * width * depth; j++) {
     maps[j] = -1;
     prot_copia[j] = prototypes[j];
   }
 
-  list1.elem = (int*)malloc(sizeof(int)*max_number_in_list);
-  list1.num_elem = 0;
-  
-  list2.elem = (int*)malloc(sizeof(int)*max_number_in_list);
-  list2.num_elem = 0;
-  
-  list_aux.elem = (int*)malloc(sizeof(int)*max_number_in_list);
-  list_aux.num_elem = 0;
+  list_init(&list1, max_number_in_list);
+
+  list_init(&list2, max_number_in_list);
+
+  list_init(&list_aux, max_number_in_list);
   printf("iteration ");
-  for (l=0;l<num_it;l++) {
+  for (l = 0; l < num_it; l++) {
     d = 0;
     if (l == 0) {
-      r=0.3;
+      r = 0.3;
     } else {
-      r=0.0;
+      r = 0.0;
     }
-    printf("%02d\b\b",l);
+    printf("%02d\b\b", l);
     fflush(0);
-    for (i=0;i<height*width*depth;i++) {
+    for (i = 0; i < height * width * depth; i++) {
       prot_copia[i] = prototypes[i]; /* to recover the domain after the first iteration */
       if (prot_copia[i] == 1) {
-	if (list1.num_elem >= max_number_in_list) {
-	  printf("Error list1.num_elem >= %d\n",max_number_in_list);
-	  return 1;
-	}
-	list1.elem[list1.num_elem] = i;
-	list1.num_elem++;
-	maps[i]=0;
+        if (list_push(&list1, i) != 0) {
+          printf("Error list1.num_elem >= %d\n", max_number_in_list);
+          return 1;
+        }
+        maps[i] = 0;
       }
     }
 
@@ -506,113 +447,92 @@ int thickness3DYezzi_reverse(unsigned char* prototypes,int height, int width, in
     while (list1.num_elem != 0 || list2.num_elem != 0) {
       /* printf("num elem list1: %d\n",list1.num_elem);*/
       while (list1.num_elem != 0) {
-	/* Get element from list1 */
-	mapindex = list1.elem[list1.num_elem-1];
-	list1.num_elem--;
-	flag = 0;
-	for (z=-1;z<2;z++) {
-	  for (x=-1;x<2;x++) {
-	    for (y=-1;y<2;y++) {
-	      if ((abs(x) + abs(y) + abs(z))!=1) continue; /* 3D neighborhood of size 6*/
-	      newmapindex = mapindex + height*width*z + y*width +x;
-	      xr = maptox3d(newmapindex,height,width);
-	      yr = maptoy3d(newmapindex,height,width);
-	      zr = maptoz3d(newmapindex,height,width);
-	      if (xr < 0 || xr >= width || yr < 0 || yr >= height || zr < 0 || zr >= depth) continue;
-	      if (prot_copia[newmapindex] == 2) {
-		/* Compute new distance */
-		distf = distanceYezzi_reverse3D(gradientx,gradienty,gradientz,newmapindex,
-						xr,yr,zr,maps,height,width,r,hx,hy,hz);
+        /* Get element from list1 */
+        mapindex = list_pop(&list1);
+        flag = 0;
+        count = neighbors3D_faces(mapindex, height, width, depth, neighbors);
+        for (k = 0; k < count; k++) {
+          newmapindex = neighbors[k];
+          xr = maptox3d(newmapindex, height, width);
+          yr = maptoy3d(newmapindex, height, width);
+          zr = maptoz3d(newmapindex, height, width);
+          if (prot_copia[newmapindex] == 2) {
+            /* Compute new distance */
+            distf = distanceYezzi_reverse3D(gradientx, gradienty, gradientz, newmapindex,
+                                            xr, yr, zr, maps, height, width, r, hx, hy, hz);
 
-		if (distf > 0 && distf < INF) {
-		  if (fabs(maps[mapindex] - distf) < 1.5) {
-		    flag = 1;
-		    maps[newmapindex] = distf;
-		    /* Put new element in list2*/
-		    if (list2.num_elem >= max_number_in_list) {
-		      printf("Error list2.num_elem >= %d\n",max_number_in_list);
-		      return 1;
-		    }
-		    list2.elem[list2.num_elem] = newmapindex;
-		    list2.num_elem++;
-		    prot_copia[newmapindex] = 1;
-		  }
-		}
-	      }
-	    }
-	  }
-	}
-	if (flag == 0) {
-	  /* Ponemos en un lista auxiliar el punto que no pudo propagarse*/
-	  if (list_aux.num_elem >= max_number_in_list) {
-	    printf("Error list_aux.num_elem >= %d\n",max_number_in_list);
-	    return 1;
-	  }
-	  list_aux.elem[list_aux.num_elem] = mapindex;
-	  list_aux.num_elem++;
-	}
+            if (distf > 0 && distf < INF) {
+              if (fabs(maps[mapindex] - distf) < 1.5) {
+                flag = 1;
+                maps[newmapindex] = distf;
+                /* Put new element in list2*/
+                if (list_push(&list2, newmapindex) != 0) {
+                  printf("Error list2.num_elem >= %d\n", max_number_in_list);
+                  return 1;
+                }
+                prot_copia[newmapindex] = 1;
+              }
+            }
+          }
+        }
+        if (flag == 0) {
+          /* Ponemos en un lista auxiliar el punto que no pudo propagarse*/
+          if (list_push(&list_aux, mapindex) != 0) {
+            printf("Error list_aux.num_elem >= %d\n", max_number_in_list);
+            return 1;
+          }
+        }
       }
 
-      for (i=0;i<list_aux.num_elem;i++) {
-	/* while (list_aux.num_elem != 0) { */
-	/* Get element from list1 */
-	mapindex = list_aux.elem[i];
-	for (z=-1;z<2;z++) {
-	  for (x=-1;x<2;x++) {
-	    for (y=-1;y<2;y++) {
-	      if ((abs(x) + abs(y) + abs(z))!=1) continue; /* 3D neighborhood of size 6*/
-	      newmapindex = mapindex + height*width*z + y*width + x;
-	      xr = maptox3d(newmapindex,height,width);
-	      yr = maptoy3d(newmapindex,height,width);
-	      zr = maptoz3d(newmapindex,height,width);
-	      if (xr < 0 || xr >= width || yr < 0 || yr >= height || zr < 0 || zr >= depth) continue;
-	      /*if (prototypes[newmapindex] == 2 || prototypes[newmapindex] == 0) {*/
-	      if (prot_copia[newmapindex] == 2) {
-		/* Compute new distance */
-		if (l==0) {
-		  distf = distanceYezzi_reverse3D_relax(gradientx,gradienty,gradientz,newmapindex,
-							xr,yr,zr,maps,height,width,r,hx,hy,hz);
-		} else {
-		  distf = distanceYezzi_reverse3D(gradientx,gradienty,gradientz,newmapindex,
-						  xr,yr,zr,maps,height,width,r,hx,hy,hz);
-		}
-		if (distf > 0 && distf < INF) {
-		  if (fabs(maps[mapindex] - distf) < 1.5 || l ==0) {
-		    maps[newmapindex] = distf;
-		    /* Put new element in list2*/
-		    if (list2.num_elem >= max_number_in_list) {
-		      printf("Error list2.num_elem >= %d\n",max_number_in_list);
-		      return 1;
-		    }
-		    list2.elem[list2.num_elem] = newmapindex;
-		    list2.num_elem++;
-		    prot_copia[newmapindex] = 1;
-		  }
-		}
-	      }
-	    }
-	  }
-	}
+      for (i = 0; i < list_aux.num_elem; i++) {
+        /* while (list_aux.num_elem != 0) { */
+        /* Get element from list1 */
+        mapindex = list_aux.elem[i];
+        count = neighbors3D_faces(mapindex, height, width, depth, neighbors);
+        for (k = 0; k < count; k++) {
+          newmapindex = neighbors[k];
+          xr = maptox3d(newmapindex, height, width);
+          yr = maptoy3d(newmapindex, height, width);
+          zr = maptoz3d(newmapindex, height, width);
+          /*if (prototypes[newmapindex] == 2 || prototypes[newmapindex] == 0) {*/
+          if (prot_copia[newmapindex] == 2) {
+            /* Compute new distance */
+            if (l == 0) {
+              distf = distanceYezzi_reverse3D_relax(gradientx, gradienty, gradientz, newmapindex,
+                                                    xr, yr, zr, maps, height, width, r, hx, hy, hz);
+            } else {
+              distf = distanceYezzi_reverse3D(gradientx, gradienty, gradientz, newmapindex,
+                                              xr, yr, zr, maps, height, width, r, hx, hy, hz);
+            }
+            if (distf > 0 && distf < INF) {
+              if (fabs(maps[mapindex] - distf) < 1.5 || l == 0) {
+                maps[newmapindex] = distf;
+                /* Put new element in list2*/
+                if (list_push(&list2, newmapindex) != 0) {
+                  printf("Error list2.num_elem >= %d\n", max_number_in_list);
+                  return 1;
+                }
+                prot_copia[newmapindex] = 1;
+              }
+            }
+          }
+        }
       }
       /* printf("num elem list2: %d, list_aux.num_elem %d\n",list2.num_elem,list_aux.num_elem);*/
-      list_aux.num_elem = 0;
+      list_clear(&list_aux);
       d++;
       /* swap(list1.elem,list2.elem); */
-      
-      index_aux = list1.elem;
-      list1.elem = list2.elem;
-      list2.elem = index_aux;
-      aux = list1.num_elem;
-      list1.num_elem = list2.num_elem;
-      list2.num_elem = aux;
+
+      list_swap(&list1, &list2);
     }
   }
-  printf("\nmaximum bucket = %d\n",d);
- 
+  printf("\nmaximum bucket = %d\n", d);
+
   /* codigo control */
-  d = 0;ag=0;
-  for (i=0;i<height*width*depth;i++) {
-    if (maps[i] > num_it ) {
+  d = 0;
+  ag = 0;
+  for (i = 0; i < height * width * depth; i++) {
+    if (maps[i] > num_it) {
       d++;
     }
     if (prototypes[i] == 2 && maps[i] == -1) {
@@ -622,78 +542,85 @@ int thickness3DYezzi_reverse(unsigned char* prototypes,int height, int width, in
   /* printf("Num potenciales errores %d, agujeros %d\n",d,ag);*/
   /* */
 
-  free(list1.elem);
-  free(list2.elem);
-  free(list_aux.elem);
+  list_free(&list1);
+  list_free(&list2);
+  list_free(&list_aux);
   free(prot_copia);
   return 0; /* success */
 }
 
-float compute_mean_thickness(unsigned char *input,float *maps, int label_cortex,int boundary_l, int height, int width, int depth, float *std ) {
-  int i,j,k,sum = 0, npoints = 0;
+/* Mean and standard deviation of the thickness map over voxels labeled
+   label_cortex that are 6-adjacent to a voxel labeled boundary_l (i.e. the
+   band immediately next to one boundary), excluding the outermost 1-voxel
+   shell of the volume. *std gets the standard deviation; the mean is returned. */
+float compute_mean_thickness(unsigned char *input, float *maps, int label_cortex, int boundary_l, int height, int width, int depth, float *std) {
+  int i, j, k, sum = 0, npoints = 0;
   float mean = 0;
 
-  for(k=0; k<depth; k++) {
-    for(j=0; j<width; j++) {
-      for(i=0; i<height; i++) {     
-	if ((i==0)||(j==0)||(k==0)||(i==height-1)||(j==width-1)||(k==depth-1) ) {
-	  /* nothing to do */	 
-	} else if ( (input[sum]==label_cortex) &&
-		    ((input[sum+1]==boundary_l)||
-		     (input[sum-1]==boundary_l)||
-		     
-		     (input[sum+height]==boundary_l)||
-		     (input[sum-height]==boundary_l)||
-		     
-		     (input[sum+height*width]==boundary_l)||
-		     (input[sum-height*width]==boundary_l))) {	  
-	  mean += maps[sum];
-	  npoints++;	  
-	}
-	sum++;
+  for (k = 0; k < depth; k++) {
+    for (j = 0; j < width; j++) {
+      for (i = 0; i < height; i++) {
+        if ((i == 0) || (j == 0) || (k == 0) || (i == height - 1) || (j == width - 1) || (k == depth - 1)) {
+          /* nothing to do */
+        } else if ((input[sum] == label_cortex) &&
+                   ((input[sum + 1] == boundary_l) ||
+                    (input[sum - 1] == boundary_l) ||
+
+                    (input[sum + height] == boundary_l) ||
+                    (input[sum - height] == boundary_l) ||
+
+                    (input[sum + height * width] == boundary_l) ||
+                    (input[sum - height * width] == boundary_l))) {
+          mean += maps[sum];
+          npoints++;
+        }
+        sum++;
       }
     }
   }
-  
+
   if (npoints == 0) {
     (*std) = 0;
     return 0;
   }
-  mean = mean/(float)npoints;
-  sum=0;
+  mean = mean / (float)npoints;
+  sum = 0;
   (*std) = 0;
-  for(k=0; k<depth; k++) {
-    for(j=0; j<width; j++) {
-      for(i=0; i<height; i++) {
-	if ((i==0)||(j==0)||(k==0)||(i==height-1)||(j==width-1)||(k==depth-1) ) {
-	  /* nothing to do */
-	} else if ( (input[sum]==label_cortex) &&
-		    ((input[sum+1]==boundary_l)||
-		     (input[sum-1]==boundary_l)||
+  for (k = 0; k < depth; k++) {
+    for (j = 0; j < width; j++) {
+      for (i = 0; i < height; i++) {
+        if ((i == 0) || (j == 0) || (k == 0) || (i == height - 1) || (j == width - 1) || (k == depth - 1)) {
+          /* nothing to do */
+        } else if ((input[sum] == label_cortex) &&
+                   ((input[sum + 1] == boundary_l) ||
+                    (input[sum - 1] == boundary_l) ||
 
-		     (input[sum+height]==boundary_l)||
-		     (input[sum-height]==boundary_l)||
+                    (input[sum + height] == boundary_l) ||
+                    (input[sum - height] == boundary_l) ||
 
-		     (input[sum+height*width]==boundary_l)||
-		     (input[sum-height*width]==boundary_l))) {
-	  (*std) += (mean - maps[sum])*(mean - maps[sum]);
-	}
-	sum++;
+                    (input[sum + height * width] == boundary_l) ||
+                    (input[sum - height * width] == boundary_l))) {
+          (*std) += (mean - maps[sum]) * (mean - maps[sum]);
+        }
+        sum++;
       }
     }
   }
 
-  printf("npoints %d\n",npoints);
-  (*std) = (npoints > 1) ? sqrt((*std)/(npoints -1)) : 0;
+  printf("npoints %d\n", npoints);
+  (*std) = (npoints > 1) ? sqrt((*std) / (npoints - 1)) : 0;
 
   return mean;
 }
 
-float compute_mean_thickness_volume(unsigned char *input,float *maps, int label_cortex, int height, int width, int depth,float *std) {
+/* Like compute_mean_thickness, but averages over every voxel labeled
+   label_cortex in the volume (no boundary-adjacency restriction, no border
+   exclusion) rather than just the band next to boundary_l. */
+float compute_mean_thickness_volume(unsigned char *input, float *maps, int label_cortex, int height, int width, int depth, float *std) {
   int i, npoints = 0;
   float mean = 0;
 
-  for(i=0; i<height*width*depth; i++) {
+  for (i = 0; i < height * width * depth; i++) {
     if (input[i] == label_cortex) {
       mean += maps[i];
       npoints++;
@@ -703,17 +630,17 @@ float compute_mean_thickness_volume(unsigned char *input,float *maps, int label_
     (*std) = 0;
     return 0;
   }
-  mean = mean/(float)npoints;
+  mean = mean / (float)npoints;
 
   (*std) = 0;
-  for(i=0; i<height*width*depth; i++) {
+  for (i = 0; i < height * width * depth; i++) {
     if (input[i] == label_cortex) {
-      (*std) += (mean - maps[i])*(mean - maps[i]);
+      (*std) += (mean - maps[i]) * (mean - maps[i]);
     }
   }
 
-  printf("npoints %d\n",npoints);
-  (*std) = (npoints > 1) ? sqrt((*std)/(npoints -1)) : 0;
+  printf("npoints %d\n", npoints);
+  (*std) = (npoints > 1) ? sqrt((*std) / (npoints - 1)) : 0;
 
   return mean;
 }

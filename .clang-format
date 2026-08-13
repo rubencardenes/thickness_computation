@@ -1,0 +1,22 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+IndentWidth: 2
+UseTab: Never
+# Preserve the author's existing line breaks: never rewrap or join lines.
+ColumnLimit: 0
+AllowShortIfStatementsOnASingleLine: AllIfsAndElse
+AllowShortLoopsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Always
+AllowShortFunctionsOnASingleLine: All
+AllowShortCaseLabelsOnASingleLine: true
+KeepEmptyLinesAtTheStartOfBlocks: true
+MaxEmptyLinesToKeep: 3
+SortIncludes: Never
+ReflowComments: false
+# Match the dominant `type *name` / `type* name` usage per file rather than
+# imposing one.
+DerivePointerAlignment: true
+IndentCaseLabels: false
+BreakBeforeBraces: Attach
+SpaceBeforeParens: ControlStatements

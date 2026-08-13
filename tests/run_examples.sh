@@ -205,6 +205,18 @@ if check_output_file poisson2d_max_local "$ROOT/max_local.png"; then
   pass poisson2d_max_local
 fi
 
+### unit checks ###############################################################
+
+# Connectivity rules for the flood fills (see tests/check_adjacency.c).
+echo "=== check_adjacency ==="
+if make -C "$ROOT" check_adjacency > "$OUTDIR/check_adjacency.log" 2>&1 \
+   && "$ROOT/check_adjacency" >> "$OUTDIR/check_adjacency.log" 2>&1; then
+  pass check_adjacency
+else
+  cat "$OUTDIR/check_adjacency.log"
+  fail check_adjacency
+fi
+
 ################################################################################
 
 echo
