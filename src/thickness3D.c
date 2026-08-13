@@ -15,7 +15,15 @@
    combines whichever of the up to 6 axis-neighbor values (x/y/z) are already
    propagated, with no per-axis tolerance rejection (unlike distanceYezzi_reverse3D).
    Used on the first pass, when few neighbors are populated yet. Returns -1 if
-   none of the 6 neighbors have been reached. */
+   none of the 6 neighbors have been reached.
+
+   An axis whose gradient component is exactly 0 is skipped entirely: it means
+   no transport along that axis, so its neighbours carry no information. It
+   contributes fabs(0)*value == 0 to the numerator and 0 to the denominator, so
+   letting it set `flag` would accept a voxel on the strength of an axis that
+   said nothing -- and the value then computed comes from no upstream data at
+   all. The forward variant used to do exactly that (a two-way `else` instead of
+   `else if (g > 0)`); both now skip zero. */
 float distanceYezzi_reverse3D_relax(float ***gradientx, float ***gradienty, float ***gradientz, int newmapindex, int x, int y, int z, float *maps, int height, int width, float r, float hx, float hy, float hz) {
   float distf;
   int flag = 0;
@@ -66,7 +74,8 @@ float distanceYezzi_reverse3D_relax(float ***gradientx, float ***gradienty, floa
   return distf;
 }
 
-/* Forward-direction counterpart of distanceYezzi_reverse3D_relax. */
+/* Forward-direction counterpart of distanceYezzi_reverse3D_relax, including the
+   same zero-gradient rule. */
 float distanceYezzi3D_relax(float ***gradientx, float ***gradienty, float ***gradientz, int newmapindex, int x, int y, int z, float *maps, int height, int width, float r, float hx, float hy, float hz) {
   float distf;
   int flag = 0;
@@ -77,7 +86,7 @@ float distanceYezzi3D_relax(float ***gradientx, float ***gradienty, float ***gra
       flag = 1;
       distf += fabs(gradientx[z][y][x]) * maps[newmapindex + 1] / hx;
     }
-  } else {
+  } else if (gradientx[z][y][x] > 0) {
     if (maps[newmapindex - 1] > -1) {
       flag = 1;
       distf += fabs(gradientx[z][y][x]) * maps[newmapindex - 1] / hx;
@@ -88,7 +97,7 @@ float distanceYezzi3D_relax(float ***gradientx, float ***gradienty, float ***gra
       distf += fabs(gradienty[z][y][x]) * maps[newmapindex + width] / hy;
       flag = 1;
     }
-  } else {
+  } else if (gradienty[z][y][x] > 0) {
     if (maps[newmapindex - width] > -1) {
       distf += fabs(gradienty[z][y][x]) * maps[newmapindex - width] / hy;
       flag = 1;
@@ -100,7 +109,7 @@ float distanceYezzi3D_relax(float ***gradientx, float ***gradienty, float ***gra
       distf += fabs(gradientz[z][y][x]) * maps[newmapindex + height * width] / hz;
       flag = 1;
     }
-  } else {
+  } else if (gradientz[z][y][x] > 0) {
     if (maps[newmapindex - height * width] > -1) {
       distf += fabs(gradientz[z][y][x]) * maps[newmapindex - height * width] / hz;
       flag = 1;

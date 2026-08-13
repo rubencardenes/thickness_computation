@@ -169,11 +169,21 @@ thickness_test thickness2d_knee "$OUTDIR/thickness2d_knee.png" 5.605474 \
 # doesn't), moving this anisotropic phantom's mean by >1% between a macOS
 # and a GitHub Actions (ubuntu-latest/x86_64) build of identical source.
 # thickness3d_caja's value happened not to move.
-thickness_test thickness3d_caja "$OUTDIR/thickness3d_caja.volf" 23.825426 \
+#
+# Both were recaptured a third time after distanceYezzi3D_relax was made to
+# skip axes whose gradient component is exactly 0, matching what
+# distanceYezzi_reverse3D_relax always did. Such an axis adds fabs(0)*value to
+# the numerator and 0 to the denominator, so it carried no information, yet the
+# forward variant let it mark the voxel as computable. Exact zeros arise on
+# axis-aligned faces and symmetry planes, so the box moves (23.836233 ->
+# 23.678579) and the anisotropic ellipsoid moves (12.575148 -> 12.259895),
+# while the isotropic sphere does not move at all -- again the signature of a
+# correctness fix rather than a regression.
+thickness_test thickness3d_caja "$OUTDIR/thickness3d_caja.volf" 23.678579 \
   ./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 \
   data/input_caja3d.vols "$OUTDIR/thickness3d_caja.volf" 80 80 80
 
-thickness_test thickness3d_elipsoid "$OUTDIR/thickness3d_elipsoid.volf" 12.575148 \
+thickness_test thickness3d_elipsoid "$OUTDIR/thickness3d_elipsoid.volf" 12.259895 \
   ./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 \
   data/phantom_elipsoid.vols "$OUTDIR/thickness3d_elipsoid.volf" 80 80 80
 
