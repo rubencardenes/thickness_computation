@@ -13,12 +13,12 @@
 0 Interior boundary
 2 Inside domain 
 */ 
-int poisson2D(unsigned char* input,int max1, int max2, float** output, int iterations, float lambda, int reverse, float h, int cortex_label) {
+int poisson2D(unsigned char* input,int height, int width, float** output, int iterations, float lambda, int reverse, float h, int cortex_label) {
   int i,j,l;
   int sum = 0;
   /* Initialize domain, inside=0, and boundaries values*/
-  for (i=0;i<max1;i++) {
-    for (j=0;j<max2;j++) {
+  for (i=0;i<height;i++) {
+    for (j=0;j<width;j++) {
       if (input[sum] == 2) {
 	output[i][j] = 0;
       } else {
@@ -39,10 +39,10 @@ int poisson2D(unsigned char* input,int max1, int max2, float** output, int itera
   /* Solve Poisson */
   for (l=0;l<iterations;l++) {
     sum = 0;
-    for (i=0;i<max1;i++) {
-      for (j=0;j<max2;j++) {
+    for (i=0;i<height;i++) {
+      for (j=0;j<width;j++) {
 	if (input[sum] == 2
-	    && i != 0 && i != max1-1 && j!=0 && j != max2-1) {
+	    && i != 0 && i != height-1 && j!=0 && j != width-1) {
 	  output[i][j] = 0.25 *(output[i-1][j] + output[i+1][j] + output[i][j-1] + output[i][j+1] - h*h);
 	  /*output[i][j] = output[i][j]+(lambda+1)*(0.25 *(output[i-1][j] + output[i+1][j] + output[i][j-1] + output[i][j+1]) - output[i][j]);*/
 	}
@@ -55,11 +55,11 @@ int poisson2D(unsigned char* input,int max1, int max2, float** output, int itera
 }
   
 
-int maximos_locales2D(float** in, unsigned char* out, int max1, int max2) {
+int maximos_locales2D(float** in, unsigned char* out, int height, int width) {
   int i,j,x,y,k=0,sum;
-  for (i=0;i<max1;i++) {
-    for (j=0;j<max2;j++) {
-      if (i == 0 || j == 0 || i == max1-1 || j == max2-1) continue;
+  for (i=0;i<height;i++) {
+    for (j=0;j<width;j++) {
+      if (i == 0 || j == 0 || i == height-1 || j == width-1) continue;
       sum = 0;
       for (x=-1;x<2;x++) {
 	for (y=-1;y<2;y++) {
@@ -70,9 +70,9 @@ int maximos_locales2D(float** in, unsigned char* out, int max1, int max2) {
 	}
       }
       if (sum == 8) {
-	out[i*max2+j] = (int)in[i][j];
+	out[i*width+j] = (int)in[i][j];
       } else {
-	out[i*max2+j] = 0;
+	out[i*width+j] = 0;
       }
       k++;
     }    
@@ -81,11 +81,11 @@ int maximos_locales2D(float** in, unsigned char* out, int max1, int max2) {
   return 0;
 }
 
-int minimos_locales2D(float** in, unsigned char* out, int max1, int max2) {
+int minimos_locales2D(float** in, unsigned char* out, int height, int width) {
   int i,j,x,y,k=0,sum;
-  for (i=0;i<max1;i++) {
-    for (j=0;j<max2;j++) {
-      if (i == 0 || j == 0 || i == max1-1 || j == max2-1) continue;
+  for (i=0;i<height;i++) {
+    for (j=0;j<width;j++) {
+      if (i == 0 || j == 0 || i == height-1 || j == width-1) continue;
       sum = 0;
       for (x=-1;x<2;x++) {
 	for (y=-1;y<2;y++) {
@@ -96,9 +96,9 @@ int minimos_locales2D(float** in, unsigned char* out, int max1, int max2) {
 	}
       }
       if (sum == 8) {
-	out[i*max2+j] = (int)in[i][j];
+	out[i*width+j] = (int)in[i][j];
       } else {
-	out[i*max2+j] = 0;
+	out[i*width+j] = 0;
       }
       k++;
     }    

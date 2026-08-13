@@ -18,9 +18,7 @@ int main(int argc, char* argv[]) {
   float **laplacefield,**gradientx,**gradienty;
   float lambda = 0.5, hx = 1,hy = 1;
   int i,col,row,c,option_index,num_it = 10,iterations_laplace = 100, suma = 0, swapbyte = 0;
-  int max1 = 256;
-  int max2 = 256;
-  int max3 = 1;
+  int depth = 1;
   int reverse = 0,compute_mean = 0, label_cortex = 2, label_wm = 3;
   int debug = 0, streamlines = 0;
   int thickness_DT = 0;
@@ -112,70 +110,68 @@ int main(int argc, char* argv[]) {
 
   gettimeofday(&startinit,NULL);
 
-  /* Read the domain from a PNG; dimensions become max1 (rows) and max2 (cols). */
+  /* Read the domain from a PNG; dimensions become height (rows) and width (cols). */
   input = load_png_gray(inputfile, &width, &height);
   if (input == NULL) {
     exit(1);
   }
-  max2 = width;
-  max1 = height;
-  printf("Input %s: %d rows x %d cols\n", inputfile, max1, max2);
+  printf("Input %s: %d rows x %d cols\n", inputfile, height, width);
 
   /* Report the distinct label values and require the band label (--lc) to be
      present in the domain. */
   {
     unsigned char present[256];
-    print_domain_values(input, max1*max2, present);
+    print_domain_values(input, height*width, present);
     if (!require_label(present, label_cortex, "--lc")) {
       free(input);
       exit(1);
     }
   }
 
-  laplacefield  = (float**)malloc(sizeof(float*)*max1);
-  for (i=0;i<max1;i++) {
-    laplacefield[i] = (float*)malloc(sizeof(float)*max2);
+  laplacefield  = (float**)malloc(sizeof(float*)*height);
+  for (i=0;i<height;i++) {
+    laplacefield[i] = (float*)malloc(sizeof(float)*width);
   }
 
   printf("Entering in laplacian2D\n");
-  if ( laplace2D(input, max1, max2, laplacefield, iterations_laplace, lambda, reverse) == 1 ) {
+  if ( laplace2D(input, height, width, laplacefield, iterations_laplace, lambda, reverse) == 1 ) {
     printf("Error in thickness2D\n");
   }
 
   if (debug == 1) {
     printf("Writing ouput input_modificado.chr\n");
     fp = fopen("input_modificado.chr","w"); 
-    fwrite(input,sizeof(unsigned char),max1*max2,fp);     
+    fwrite(input,sizeof(unsigned char),height*width,fp);     
     fclose(fp);
   }
 
   if (debug ==1) {
     printf("Writing ouput laplacefile.flt\n");  
     fp = fopen("laplacefile.flt","w");
-    for (i=0;i<max1;i++) {
-      fwrite(laplacefield[i],sizeof(float),max2,fp);    
+    for (i=0;i<height;i++) {
+      fwrite(laplacefield[i],sizeof(float),width,fp);    
     }
     fclose(fp);
   }
 
   /* Reserve memory for maps and gradients*/
-  maps = (float*)malloc(sizeof(float)*max1*max2);
-  gradientx = (float**)malloc(sizeof(float*)*max1);
-  for (i=0;i<max1;i++) {
-    gradientx[i] = (float*)malloc(sizeof(float)*max2);
+  maps = (float*)malloc(sizeof(float)*height*width);
+  gradientx = (float**)malloc(sizeof(float*)*height);
+  for (i=0;i<height;i++) {
+    gradientx[i] = (float*)malloc(sizeof(float)*width);
   }
-  gradienty = (float**)malloc(sizeof(float*)*max1);
-  for (i=0;i<max1;i++) {
-    gradienty[i] = (float*)malloc(sizeof(float)*max2);
+  gradienty = (float**)malloc(sizeof(float*)*height);
+  for (i=0;i<height;i++) {
+    gradienty[i] = (float*)malloc(sizeof(float)*width);
   }
 
-  /*GradX(laplacefield, gradientx, max1, max2);
-    GradY(laplacefield, gradienty, max1, max2);*/
+  /*GradX(laplacefield, gradientx, height, width);
+    GradY(laplacefield, gradienty, height, width);*/
   
-  iGradX(laplacefield, gradientx, max1, max2);
-  iGradY(laplacefield, gradienty, max1, max2);
+  iGradX(laplacefield, gradientx, height, width);
+  iGradY(laplacefield, gradienty, height, width);
 
-  normalize(gradientx,gradienty,max1,max2);
+  normalize(gradientx,gradienty,height,width);
   
   /* CODIGO DE CONTROL */
   if (debug == 1) {
@@ -184,8 +180,8 @@ int main(int argc, char* argv[]) {
       fprintf(stderr,"Failed writing gradientX.flt\n");
       exit(1); 
     } 
-    for (i=0;i<max1;i++) {
-      fwrite(gradientx[i],sizeof(float),max2,fp); 
+    for (i=0;i<height;i++) {
+      fwrite(gradientx[i],sizeof(float),width,fp); 
     }
     fclose(fp); 
     
@@ -194,8 +190,8 @@ int main(int argc, char* argv[]) {
       fprintf(stderr,"Failed writing gradientY.flt\n");
       exit(1); 
     } 
-    for (i=0;i<max1;i++) {
-      fwrite(gradienty[i],sizeof(float),max2,fp);
+    for (i=0;i<height;i++) {
+      fwrite(gradienty[i],sizeof(float),width,fp);
     }
     fclose(fp);
   }
@@ -205,25 +201,25 @@ int main(int argc, char* argv[]) {
   printf("Entering in thickness2D\n");
   gettimeofday(&endinit,NULL);
   if (reverse == 0) {
-    if ( thickness2DYezzi(input, max1, max2, maps, laplacefield, gradientx, gradienty, num_it,hx,hy, label_cortex, debug) == 1 ) {
+    if ( thickness2DYezzi(input, height, width, maps, laplacefield, gradientx, gradienty, num_it,hx,hy, label_cortex, debug) == 1 ) {
       printf("Error in thickness2D\n");
     }
   } else {
-    if ( thickness2DYezzi_reverse(input, max1, max2, maps, laplacefield, gradientx, gradienty, num_it,hx,hy, label_cortex, debug) == 1 ) {
+    if ( thickness2DYezzi_reverse(input, height, width, maps, laplacefield, gradientx, gradienty, num_it,hx,hy, label_cortex, debug) == 1 ) {
     printf("Error in thickness2D\n");
     }
   }
-  /* if ( thickness2Dgradient(input, max1, max2, maps, laplacefield, gradientx, gradienty) == 1 ) {
+  /* if ( thickness2Dgradient(input, height, width, maps, laplacefield, gradientx, gradienty) == 1 ) {
     printf("Error in thickness2D\n");
     } */
   
   if (streamlines == 1) {
-    streaml_maps = (float*)malloc(sizeof(float)*max1*max2);
-    if ( thickness2Dgradient(input, max1, max2, maps, streaml_maps, laplacefield, gradientx, gradienty) == 1 ) {
+    streaml_maps = (float*)malloc(sizeof(float)*height*width);
+    if ( thickness2Dgradient(input, height, width, maps, streaml_maps, laplacefield, gradientx, gradienty) == 1 ) {
       printf("Error in thickness2D\n");
     }
     printf("Writing ouput streamline %s:\n",outputfile);
-    write_float_output(outputfile, streaml_maps, max2, max1, 1, color_mode);
+    write_float_output(outputfile, streaml_maps, width, height, 1, color_mode);
     free(streaml_maps);
   }
 
@@ -231,13 +227,13 @@ int main(int argc, char* argv[]) {
 
   if (streamlines == 0) {
     printf("Writing ouput %s:\n",outputfile);
-    write_float_output(outputfile, maps, max2, max1, 1, color_mode);
+    write_float_output(outputfile, maps, width, height, 1, color_mode);
   }
 
   if (compute_mean == 1) {
     int npoints;
     float sigma, mean;
-    mean = compute_mean_thickness2D(input, maps, label_cortex, max1, max2, &npoints, &sigma);
+    mean = compute_mean_thickness2D(input, maps, label_cortex, height, width, &npoints, &sigma);
     printf("Mean thickness = %f std = %f (over %d band pixels)\n", mean, sigma, npoints);
   }
 

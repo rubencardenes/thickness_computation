@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-int im2vtk(unsigned char *data,int max1,int max2, int max3, char* fichero) {
+int im2vtk(unsigned char *data,int height,int width, int depth, char* fichero) {
   int z,x,y,i;
   FILE * fd;
   
@@ -10,18 +10,18 @@ int im2vtk(unsigned char *data,int max1,int max2, int max3, char* fichero) {
    fprintf(fd,"Skeleton\n");
    fprintf(fd,"ASCII\n");
    fprintf(fd,"DATASET STRUCTURED_POINTS\n");
-   fprintf(fd,"DIMENSIONS %d %d %d\n", max1, max2, max3);
+   fprintf(fd,"DIMENSIONS %d %d %d\n", height, width, depth);
    fprintf(fd,"ASPECT_RATIO 1 1 1\n");
    fprintf(fd,"ORIGIN 0 0 0\n");   
-   fprintf(fd,"POINT_DATA %d\n", max1*max2*max3);
+   fprintf(fd,"POINT_DATA %d\n", height*width*depth);
    fprintf(fd,"SCALARS volume_scalars float\n");
    fprintf(fd,"LOOKUP_TABLE default\n");
 
    /* write the image data in ascii vtk*/
    i = 0;
-   for (z=0; z<max3; z++) {
-     for(x=0; x<max1; x++) {
-       for(y=0; y<max2; y++) {
+   for (z=0; z<depth; z++) {
+     for(x=0; x<height; x++) {
+       for(y=0; y<width; y++) {
 	  fprintf(fd,"%f\n",(float)data[i]);
 	  i++;
         } 

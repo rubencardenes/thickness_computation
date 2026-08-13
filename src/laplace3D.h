@@ -23,18 +23,18 @@
 #define CDY3(Data,iZ,iY,iX,hy) ((Data[(iZ)][(iY)+1][(iX)] - Data[(iZ)][(iY)-1][(iX)])/(hy*2))
 #define CDX3(Data,iZ,iY,iX,hx) ((Data[(iZ)][(iY)][(iX)+1] - Data[(iZ)][(iY)][(iX)-1])/(hx*2))
 
-int maptox3d(int mapindex,int max1,int max2);
-int maptoy3d(int mapindex,int max1,int max2);
-int maptoz3d(int mapindex,int max1,int max2);
+int maptox3d(int mapindex,int height,int width);
+int maptoy3d(int mapindex,int height,int width);
+int maptoz3d(int mapindex,int height,int width);
 int relabel(unsigned char* data, int totdim, unsigned char oldlabel, unsigned char newlabel);
 int relabel_ushort(unsigned short* data, int totdim, unsigned char oldlabel, unsigned char newlabel);
 int relabel_uchar(unsigned char* data, int totdim, unsigned char oldlabel, unsigned char newlabel);
 int relabel_float(float *data, int totdim, float oldlabel, float newlabel);
-int laplace3D(unsigned char* input,int max1, int max2, int max3,float*** output, int iterations, float lambda);
-int laplace3D_voxelsize(unsigned char* input,int max1, int max2, int max3, float*** output, int iterations,  float hx, float hy, float hz, float lambda);
-int RelabelBoundary3D(unsigned char *domain,int max1,int max2,int max3);
-int EdgeDetect3D(unsigned char *domain, int max1, int max2, int max3);
-int normalize3D(float*** gradientx, float*** gradienty,float*** gradientz,int max1,int max2, int max3);
+int laplace3D(unsigned char* input,int height, int width, int depth,float*** output, int iterations, float lambda);
+int laplace3D_voxelsize(unsigned char* input,int height, int width, int depth, float*** output, int iterations,  float hx, float hy, float hz, float lambda);
+int RelabelBoundary3D(unsigned char *domain,int height,int width,int depth);
+int EdgeDetect3D(unsigned char *domain, int height, int width, int depth);
+int normalize3D(float*** gradientx, float*** gradienty,float*** gradientz,int height,int width, int depth);
 int iGradX(float **ppfData, float **ppfGradient, int numRowX, int numColY);
 int iGradY(float **ppfData, float **ppfGradient, int numRowX, int numColY);
 int iGradX3D(float ***ppfData, float ***ppfGradient, int numRowX, int numColY,int numSlice, float hx);
