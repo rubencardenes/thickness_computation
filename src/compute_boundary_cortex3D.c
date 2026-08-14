@@ -4,7 +4,7 @@
 #include "compute_boundary_cortex3D.h"
 
 int compute_boundary_cortex3D(unsigned short *segmented, int height, int width, int depth, int label_wm, int label_cortex) {
-  int i, j, k, sum, found;
+  int i, j, k, sum;
 
   for (i = 0; i < height * width * depth; i++) {
     if (segmented[i] != label_cortex && segmented[i] != label_wm && segmented[i] != 0) {

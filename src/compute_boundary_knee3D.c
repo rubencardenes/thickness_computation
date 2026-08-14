@@ -61,8 +61,8 @@ int test_boundary3D(unsigned char *segmented, unsigned short *original, int mapi
   return 0;
 }
 
-int compute_boundary3D(unsigned char *segmented, unsigned short *original, int height, int width, int depth, int label, float threshold) {
-  int i, j, k, sum, found;
+int compute_boundary3D(unsigned char *segmented, unsigned short *original, int height, int width, int depth, float threshold) {
+  int i, j, k, sum;
 
   /*found = 0;
   for (i=0;i<height*width*depth;i++) {
@@ -108,20 +108,17 @@ int compute_boundary3D(unsigned char *segmented, unsigned short *original, int h
 int main(int argc, char *argv[]) {
   unsigned char *input;
   unsigned short *original;
-  int i, j, swapbyte = 0, label = 0, tam, fsize, hsize, c, option_index;
+  int i, swapbyte = 0, label = 0, fsize, hsize, c, option_index;
   float threshold = 0;
   int height = 256;
   int width = 256;
   int depth = 1;
   int debug = 1;
-  FILE *fp, *fg;
+  FILE *fp;
   struct timeval startinit;
-  struct timeval endinit;
-  struct timeval endtotal;
   char segmented_prefix[200], original_prefix[200];
   char segmented_file[200], original_file[200], outputfile[200];
-  unsigned char *aux, *output;
-  float *output_float;
+  unsigned char *aux;
 
   while (1) {
     static struct option long_options[] = {
@@ -233,7 +230,7 @@ int main(int argc, char *argv[]) {
   }
 
   /* Compute */
-  compute_boundary3D(input, original, height, width, depth, label, threshold);
+  compute_boundary3D(input, original, height, width, depth, threshold);
   /* sizefilter2D(segmented, height,width, 15, 1, 2);
   sizefilter2D(segmented, height,width, 20, 2, 1); 
   tam = maxcomponent2D(segmented, height, width, 1); 

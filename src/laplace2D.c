@@ -4,16 +4,33 @@
 #include <math.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <math.h>
 #include "laplace2D.h"
 
-typedef unsigned char uchar;
-#define SEVEN_SUPP
-#define MAX_CORNERS 15000 /* max corners per frame */
-#define FTOI(a) ((a) < 0 ? ((int)(a - 0.5)) : ((int)(a + 0.5)))
-typedef struct {
-  int x, y, info, dx, dy, I;
-} CORNER_LIST[MAX_CORNERS];
+/* Writes the solver's starting field from the label image: the band (label 2)
+   starts at 0, the region outside the domain (label 255) at 255 -- or -1 when
+   `reverse` flips which boundary the field runs towards -- and every other
+   label is held at its own value as the Dirichlet condition the relaxation
+   reads. Shared by laplace2D and poisson2D, which differ only in their update
+   step. */
+void init_laplace_field2D(const unsigned char *input, int height, int width, float **output, int reverse) {
+  int i, j;
+  int sum = 0;
+
+  for (i = 0; i < height; i++) {
+    for (j = 0; j < width; j++) {
+      if (input[sum] == 2) {
+        output[i][j] = 0;
+      } else {
+        if (input[sum] == 255) {
+          output[i][j] = reverse ? -1 : 255;
+        } else {
+          output[i][j] = input[sum];
+        }
+      }
+      sum++;
+    }
+  }
+}
 
 /* Input values
 255 Outside domain
@@ -24,25 +41,7 @@ typedef struct {
 int laplace2D(unsigned char *input, int height, int width, float **output, int iterations, float lambda, int reverse) {
   int i, j, l;
   int sum = 0;
-  /* Initialize domain, inside=0, and boundaries values*/
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < width; j++) {
-      if (input[sum] == 2) {
-        output[i][j] = 0;
-      } else {
-        if (input[sum] == 255) {
-          if (reverse) {
-            output[i][j] = -1;
-          } else {
-            output[i][j] = 255;
-          }
-        } else {
-          output[i][j] = input[sum];
-        }
-      }
-      sum++;
-    }
-  }
+  init_laplace_field2D(input, height, width, output, reverse);
 
   /* Solve Laplacian */
   for (l = 0; l < iterations; l++) {
@@ -50,7 +49,6 @@ int laplace2D(unsigned char *input, int height, int width, float **output, int i
     for (i = 0; i < height; i++) {
       for (j = 0; j < width; j++) {
         if (input[sum] == 2 && i != 0 && i != height - 1 && j != 0 && j != width - 1) {
-          /*output[i][j] = 0.25 *(output[i-1][j] + output[i+1][j] + output[i][j-1] + output[i][j+1]);*/
           output[i][j] = output[i][j] + (lambda + 1) * (0.25 * (output[i - 1][j] + output[i + 1][j] + output[i][j - 1] + output[i][j + 1]) - output[i][j]);
         }
         sum++;
@@ -68,7 +66,7 @@ int EdgeDetect(unsigned char *domain, int height, int width) {
   for (x = 0; x < height; x++) {
     for (y = 0; y < width; y++) {
       if ((x == 0) || (y == 0) || (x == height - 1) || (y == width - 1)) {
-        /* domain[i]=255;*/
+        /* nothing to do */
       } else if ((domain[i] != 0) &&
                  ((domain[i + 1] == 0) ||
                   (domain[i - 1] == 0) ||
@@ -78,9 +76,6 @@ int EdgeDetect(unsigned char *domain, int height, int width) {
 
         domain[i] = 1;
       }
-      /*else {	   	   
-  domain[i]=255;
-  }*/
       i++;
     }
   }
@@ -405,10 +400,15 @@ int normalize(float **gradientx, float **gradienty, int height, int width) {
   return 0;
 }
 
+/* Upper bound on the corners this detects. `tramo` counts the arcs the corners
+   cut the curve into and is used to index count0/count1, so those need one more
+   slot than there are corners. */
+#define MAX_CORNERS 10
+
 int new_compute_corners(unsigned short *input, int height, int width) {
   int i, k, start, end, mapindex, newmapindex, flag, num_corners = 0;
-  int in, ip, tramo, corner[10];
-  int count, count0[10], count1[10];
+  int in, ip, tramo, corner[MAX_CORNERS];
+  int count, count0[MAX_CORNERS + 1], count1[MAX_CORNERS + 1];
   float ax, ay, bx, by;
   unsigned char *aux;
   int neighbors[MAX_NEIGHBORS_2D];
@@ -524,13 +524,20 @@ int new_compute_corners(unsigned short *input, int height, int width) {
     }
     if (flag == 1 && coseno_ideal[i] > 0) {
       printf("found corner at x %d y %d coseno_ideal[i] %f\n", maptox(curve.elem[i], width), maptoy(curve.elem[i], width), coseno_ideal[i]);
+      /* Check before storing: the guard used to run after the write, so the
+         (MAX_CORNERS+1)-th corner wrote one past the end of corner[]. */
+      if (num_corners >= MAX_CORNERS) {
+        printf("Error, more than %d corners found\n", MAX_CORNERS);
+        free(coseno_ideal);
+        free(ideal);
+        free(aux);
+        list_free(&curve);
+        list_free(&frontier);
+        return 1;
+      }
       aux[curve.elem[i]] = 255;
       corner[num_corners] = i;
       num_corners++;
-      if (num_corners > 10) {
-        printf("Error, num_corners > %d\n", num_corners);
-        return 1;
-      }
       input[curve.elem[i]] = 7;
     }
     /* input[curve.elem[i]] = i;*/
@@ -545,7 +552,7 @@ int new_compute_corners(unsigned short *input, int height, int width) {
     return 0;
   }
 
-  for (i = 0; i < 10; i++) {
+  for (i = 0; i <= MAX_CORNERS; i++) {
     count0[i] = 0;
     count1[i] = 0;
   }

@@ -11,20 +11,16 @@
 
 int main(int argc, char *argv[]) {
   unsigned short *input;
-  int i, j, swapbyte = 0, label_wm = 3, label_cortex = 2, tam, fsize, hsize, c, option_index;
-  float threshold;
+  int i, swapbyte = 0, label_wm = 3, label_cortex = 2, c, option_index;
   int height = 256;
   int width = 256;
   int depth = 1;
   int debug = 1;
-  FILE *fp, *fg;
+  FILE *fp;
   struct timeval startinit;
-  struct timeval endinit;
-  struct timeval endtotal;
   char input_prefix[200];
   char input_file[200], outputfile[200], extension[6];
-  unsigned char *aux, *output, *l;
-  float *output_float;
+  unsigned char *aux, *l;
 
   while (1) {
     static struct option long_options[] = {

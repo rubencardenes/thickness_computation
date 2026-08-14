@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
-#include <poisson2D.h>
-#include <laplace2D.h>
+#include "poisson2D.h"
+#include "laplace2D.h"
 #include "png_write.h"
 
 int main(int argc, char *argv[]) {
@@ -13,7 +13,6 @@ int main(int argc, char *argv[]) {
   int i;
   int iterations = 10;
   float lambda = 0.5, h = 1.0;
-  int cortex_label = 2;
   int width, height;
   char *inputfile, *outputfile;
   FILE *fg;
@@ -69,11 +68,14 @@ int main(int argc, char *argv[]) {
   }
 
   printf("Entering in poisson2D\n");
-  if (poisson2D(input, height, width, output, iterations, lambda, 0, h, cortex_label) == 1) {
+  if (poisson2D(input, height, width, output, iterations, lambda, 0, h) == 1) {
     printf("Error in poisson2D\n");
   }
 
-  min_local = (unsigned char *)malloc(sizeof(unsigned char) * height * width);
+  /* calloc, not malloc: minimos_locales2D skips the outermost 1-pixel border
+     without writing to it, so those pixels would otherwise reach max_local.png
+     as uninitialized heap -- which made the image vary between runs. */
+  min_local = (unsigned char *)calloc(height * width, sizeof(unsigned char));
   printf("Entering in min local detection\n");
   if (minimos_locales2D(output, min_local, height, width) == 1) {
     printf("Error in minimos_locales2D\n");

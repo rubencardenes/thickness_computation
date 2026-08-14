@@ -10,25 +10,23 @@
 #include "laplace2D.h"
 #include "png_write.h"
 
-int numasignaciones = 0;
-
 int main(int argc, char *argv[]) {
   unsigned char *input;
   float *maps, *streaml_maps;
   float **laplacefield, **gradientx, **gradienty;
   float lambda = 0.5, hx = 1, hy = 1;
-  int i, col, row, c, option_index, num_it = 10, iterations_laplace = 100, suma = 0, swapbyte = 0;
-  int depth = 1;
-  int reverse = 0, compute_mean = 0, label_cortex = 2, label_wm = 3;
+  int i, c, option_index, num_it = 10, iterations_laplace = 100;
+  int reverse = 0, compute_mean = 0, label_cortex = 2;
   int debug = 0, streamlines = 0;
-  int thickness_DT = 0;
+  /* Parsed and documented but inert in this tool; see thickness2Dmain.c. */
+  int suma = 0, swapbyte = 0, thickness_DT = 0, label_wm = 3;
   int color_mode = COLOR_GRAY;
   int width, height;
-  FILE *fp, *fg;
+  FILE *fp;
   struct timeval startinit;
   struct timeval endinit;
   struct timeval endtotal;
-  char inputfile[200], outputfile[200], *laplacefile;
+  char inputfile[200], outputfile[200];
 
   /* Same argument parsing as thickness2D. thickness2D_knee expects the domain
      to already encode the boundaries, so it does not derive them from --lw/--lc;
@@ -196,15 +194,14 @@ int main(int argc, char *argv[]) {
   }
   /* CODIGO DE CONTROL */
 
-  numasignaciones = 0;
   printf("Entering in thickness2D\n");
   gettimeofday(&endinit, NULL);
   if (reverse == 0) {
-    if (thickness2DYezzi(input, height, width, maps, laplacefield, gradientx, gradienty, num_it, hx, hy, label_cortex, debug) == 1) {
+    if (thickness2DYezzi(input, height, width, maps, gradientx, gradienty, num_it, hx, hy, label_cortex, debug) == 1) {
       printf("Error in thickness2D\n");
     }
   } else {
-    if (thickness2DYezzi_reverse(input, height, width, maps, laplacefield, gradientx, gradienty, num_it, hx, hy, label_cortex, debug) == 1) {
+    if (thickness2DYezzi_reverse(input, height, width, maps, gradientx, gradienty, num_it, hx, hy, label_cortex, debug) == 1) {
       printf("Error in thickness2D\n");
     }
   }
@@ -214,7 +211,7 @@ int main(int argc, char *argv[]) {
 
   if (streamlines == 1) {
     streaml_maps = (float *)malloc(sizeof(float) * height * width);
-    if (thickness2Dgradient(input, height, width, maps, streaml_maps, laplacefield, gradientx, gradienty) == 1) {
+    if (thickness2Dgradient(input, height, width, maps, streaml_maps, gradientx, gradienty) == 1) {
       printf("Error in thickness2D\n");
     }
     printf("Writing ouput streamline %s:\n", outputfile);

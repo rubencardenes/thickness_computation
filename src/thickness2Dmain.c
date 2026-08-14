@@ -10,10 +10,8 @@
 #include "laplace2D.h"
 #include "png_write.h"
 
-int numasignaciones = 0;
-
 int compute_boundary_cortex2D(unsigned char *segmented, int height, int width, int label_wm, int label_cortex) {
-  int i, j, k, sum, found;
+  int i, j, sum;
 
   for (i = 0; i < height * width; i++) {
     if (segmented[i] != label_cortex && segmented[i] != label_wm && segmented[i] != 0) {
@@ -57,18 +55,22 @@ int main(int argc, char *argv[]) {
   float *maps, *maps_reverse, *streaml_maps;
   float **laplacefield, **gradientx, **gradienty;
   float lambda = 0.5, hx = 1, hy = 1;
-  int i, col, row, c, option_index, num_it = 10, iterations_laplace = 100, suma = 0, swapbyte = 0;
+  int i, c, option_index, num_it = 10, iterations_laplace = 100, suma = 0;
   int depth = 1;
   int reverse = 0, compute_mean = 0, label_cortex = 2, label_wm = 3;
   int debug = 0, streamlines = 0;
-  int thickness_DT = 0;
+  /* -w and --DT are parsed and documented but have no effect in this tool:
+     the input is a PNG (nothing to byte-swap) and there is no DT code path
+     here, unlike thickness3D. Kept so the documented CLI keeps accepting
+     them; removing the options is a behaviour change, not a cleanup. */
+  int swapbyte = 0, thickness_DT = 0;
   int color_mode = COLOR_GRAY;
   int width, height;
-  FILE *fp, *fg;
+  FILE *fp;
   struct timeval startinit;
   struct timeval endinit;
   struct timeval endtotal;
-  char inputfile[200], outputfile[200], *laplacefile;
+  char inputfile[200], outputfile[200];
 
   while (1) {
     static struct option long_options[] = {
@@ -287,18 +289,15 @@ int main(int argc, char *argv[]) {
   }
   /* CODIGO DE CONTROL */
 
-  numasignaciones = 0;
   printf("Entering in thickness2D\n");
   gettimeofday(&endinit, NULL);
   if (suma == 0) {
     if (reverse == 0) {
-      if (thickness2DYezzi(input, height, width, maps, laplacefield,
-                           gradientx, gradienty, num_it, hx, hy, label_cortex, debug) == 1) {
+      if (thickness2DYezzi(input, height, width, maps, gradientx, gradienty, num_it, hx, hy, label_cortex, debug) == 1) {
         printf("Error in thickness2D\n");
       }
     } else {
-      if (thickness2DYezzi_reverse(input, height, width, maps, laplacefield,
-                                   gradientx, gradienty, num_it, hx, hy, label_cortex, debug) == 1) {
+      if (thickness2DYezzi_reverse(input, height, width, maps, gradientx, gradienty, num_it, hx, hy, label_cortex, debug) == 1) {
         printf("Error in thickness2D\n");
       }
     }
@@ -306,12 +305,10 @@ int main(int argc, char *argv[]) {
 
   if (suma == 1) {
     maps_reverse = (float *)malloc(sizeof(float) * height * width);
-    if (thickness2DYezzi(input, height, width, maps, laplacefield,
-                         gradientx, gradienty, num_it, hx, hy, label_cortex, debug) == 1) {
+    if (thickness2DYezzi(input, height, width, maps, gradientx, gradienty, num_it, hx, hy, label_cortex, debug) == 1) {
       printf("Error in thickness2D\n");
     }
-    if (thickness2DYezzi_reverse(input, height, width, maps_reverse, laplacefield,
-                                 gradientx, gradienty, num_it, hx, hy, label_cortex, debug) == 1) {
+    if (thickness2DYezzi_reverse(input, height, width, maps_reverse, gradientx, gradienty, num_it, hx, hy, label_cortex, debug) == 1) {
       printf("Error in thickness2D\n");
     }
     relabel_float(maps, height * width * depth, -1, 0);
@@ -321,7 +318,7 @@ int main(int argc, char *argv[]) {
   }
   if (streamlines == 1) {
     streaml_maps = (float *)malloc(sizeof(float) * height * width);
-    if (thickness2Dgradient(input, height, width, maps, streaml_maps, laplacefield, gradientx, gradienty) == 1) {
+    if (thickness2Dgradient(input, height, width, maps, streaml_maps, gradientx, gradienty) == 1) {
       printf("Error in thickness2D\n");
     }
     printf("Writing ouput streamline %s:\n", outputfile);

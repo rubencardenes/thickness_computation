@@ -3,16 +3,10 @@
 
 #include "array_utils.h"
 #include "utils.h"
-
-/* 2D Gradient definitions */
-#define FDY(Data, iX, iY) (Data[(iX)][(iY) + 1] - Data[(iX)][(iY)])
-#define BDY(Data, iX, iY) (Data[(iX)][(iY)] - Data[(iX)][(iY) - 1])
-
-#define FDX(Data, iX, iY) (Data[(iX) + 1][(iY)] - Data[(iX)][(iY)])
-#define BDX(Data, iX, iY) (Data[(iX)][(iY)] - Data[(iX) - 1][(iY)])
-
-#define CDX(Data, iX, iY) ((Data[(iX) + 1][(iY)] - Data[(iX) - 1][(iY)]) * 0.5)
-#define CDY(Data, iX, iY) ((Data[(iX)][(iY) + 1] - Data[(iX)][(iY) - 1]) * 0.5)
+/* The 2D gradient macros and the iGradX/iGradY prototypes live here; they used
+   to be copied verbatim into this header, which only worked while the two
+   copies stayed identical. */
+#include "laplace2D.h"
 
 /* 3D Gradient definitions */
 #define FDY3(Data, iZ, iY, iX, hy) (Data[(iZ)][(iY) + 1][(iX)] - Data[(iZ)][(iY)][(iX)]) / hy
@@ -32,9 +26,8 @@ int laplace3D(unsigned char *input, int height, int width, int depth, float ***o
 int laplace3D_voxelsize(unsigned char *input, int height, int width, int depth, float ***output, int iterations, float hx, float hy, float hz, float lambda);
 int RelabelBoundary3D(unsigned char *domain, int height, int width, int depth);
 int EdgeDetect3D(unsigned char *domain, int height, int width, int depth);
+int EdgeDetect3D_knee(unsigned char *domain, int height, int width, int depth);
 int normalize3D(float ***gradientx, float ***gradienty, float ***gradientz, int height, int width, int depth);
-int iGradX(float **ppfData, float **ppfGradient, int numRowX, int numColY);
-int iGradY(float **ppfData, float **ppfGradient, int numRowX, int numColY);
 int iGradX3D(float ***ppfData, float ***ppfGradient, int numRowX, int numColY, int numSlice, float hx);
 int iGradY3D(float ***ppfData, float ***ppfGradient, int numRowX, int numColY, int numSlice, float hy);
 int iGradZ3D(float ***ppfData, float ***ppfGradient, int numRowX, int numColY, int numSlice, float hz);

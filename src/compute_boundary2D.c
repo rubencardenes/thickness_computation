@@ -85,16 +85,12 @@ int compute_boundary2D(unsigned short *segmented, unsigned short *original, int 
 int main(int argc, char *argv[]) {
   unsigned short *segmented;
   unsigned short *original;
-  int i, j, swapbyte, label, max_component, fsize, hsize;
+  int i, swapbyte, label, max_component, fsize, hsize;
   float threshold;
   int height = 256;
   int width = 256;
-  int depth = 1;
-  int debug = 1;
-  FILE *fp, *fg;
+  FILE *fp;
   struct timeval startinit;
-  struct timeval endinit;
-  struct timeval endtotal;
   char *segmented_file, *original_file;
   unsigned char *aux, *output;
 
