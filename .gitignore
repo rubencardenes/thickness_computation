@@ -15,6 +15,7 @@ compute_boundary_knee3D
 compute_boundary_cortex3D
 generar_phantom3d_elipsoid
 check_adjacency
+check_index3d
 
 # Program outputs (in the project root; example inputs under data/ are kept)
 /*.flt

@@ -227,6 +227,17 @@ else
   fail check_adjacency
 fi
 
+# 3D index helpers on a non-cubic volume (see tests/check_index3d.c). Every
+# phantom under data/ is a cube, which is exactly why this needs its own check.
+echo "=== check_index3d ==="
+if make -C "$ROOT" check_index3d > "$OUTDIR/check_index3d.log" 2>&1 \
+   && "$ROOT/check_index3d" >> "$OUTDIR/check_index3d.log" 2>&1; then
+  pass check_index3d
+else
+  cat "$OUTDIR/check_index3d.log"
+  fail check_index3d
+fi
+
 ################################################################################
 
 echo

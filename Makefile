@@ -121,9 +121,16 @@ generar_phantom3d_elipsoid: $(SRC)/generar_phantom3d_elipsoid.c
 check_adjacency: tests/check_adjacency.c $(BUILD)/laplace2D.o $(BUILD)/utils.o $(BUILD)/array_utils.o
 	$(CC) $(FLAGS) $(DEPFLAGS) -MF $(BUILD)/$@.main.d tests/check_adjacency.c $(BUILD)/laplace2D.o $(BUILD)/utils.o $(BUILD)/array_utils.o -lm -o $@
 
+# Guards the 3D index helpers in utils.c against the width/height confusion that
+# is invisible on the cubic phantoms under data/: it runs them over a
+# deliberately non-cubic volume.
+check_index3d: tests/check_index3d.c $(BUILD)/utils.o
+	$(CC) $(FLAGS) $(DEPFLAGS) -MF $(BUILD)/$@.main.d tests/check_index3d.c $(BUILD)/utils.o -lm -o $@
+
 clean:
 	rm -f $(EXECUTABLES)
 	rm -f check_adjacency
+	rm -f check_index3d
 	rm -rf $(BUILD)
 	rm -rf *.dSYM
 	rm -f *~
