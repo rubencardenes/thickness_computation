@@ -179,15 +179,26 @@ thickness_test thickness2d_knee "$OUTDIR/thickness2d_knee.png" 5.605474 \
 # 23.678579) and the anisotropic ellipsoid moves (12.575148 -> 12.259895),
 # while the isotropic sphere does not move at all -- again the signature of a
 # correctness fix rather than a regression.
-thickness_test thickness3d_caja "$OUTDIR/thickness3d_caja.volf" 23.678579 \
+#
+# Recaptured a fourth time after fixing the gradient/axis pairing in
+# yezzi_step3D: the gradient arrays are [k][i][j] and iGradX3D differentiates
+# the last index (j), but the propagation paired it with stride 1 (the i axis)
+# and sampled it at the i<->j mirrored voxel, so the front walked the wrong
+# axis. Before the fix it left 29% (forward) and 37% (reverse) of the ellipsoid
+# band unreached and capped L1 at 15.2 across a 25-voxel shell; after it, both
+# directions cover 100% of the band, L0 and L1 peak at 24.8 and 25.1, and
+# L0+L1 -- the Yezzi thickness, which must be constant along a streamline --
+# varies by 0.26 over that shell. The sphere again barely moves (2e-6, from
+# summation order in the denominator) because it is i<->j symmetric.
+thickness_test thickness3d_caja "$OUTDIR/thickness3d_caja.volf" 29.756521 \
   ./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 \
   data/input_caja3d.vols "$OUTDIR/thickness3d_caja.volf" 80 80 80
 
-thickness_test thickness3d_elipsoid "$OUTDIR/thickness3d_elipsoid.volf" 12.259895 \
+thickness_test thickness3d_elipsoid "$OUTDIR/thickness3d_elipsoid.volf" 9.954701 \
   ./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 \
   data/phantom_elipsoid.vols "$OUTDIR/thickness3d_elipsoid.volf" 80 80 80
 
-thickness_test thickness3d_sphere "$OUTDIR/thickness3d_sphere.volf" 24.552910 \
+thickness_test thickness3d_sphere "$OUTDIR/thickness3d_sphere.volf" 24.552912 \
   ./thickness3D -m -n 20 -i 200 --lw 3 --lc 2 \
   data/phantom_sphere.vols "$OUTDIR/thickness3d_sphere.volf" 80 80 80
 

@@ -38,7 +38,7 @@
    trigger a rejection either, since fabs(0) > r is false for the non-negative r
    the drivers pass, so skipping is a no-op there. */
 static float yezzi_step3D(float ***gradientx, float ***gradienty, float ***gradientz,
-                          int newmapindex, int x, int y, int z, float *maps,
+                          int newmapindex, int i, int j, int k, float *maps,
                           int height, int width, int sign, int strict, float r,
                           float hx, float hy, float hz) {
   float grad[3], h[3];
@@ -47,14 +47,28 @@ static float yezzi_step3D(float ***gradientx, float ***gradienty, float ***gradi
   int reached = 0;
   int a, up;
 
-  grad[0] = gradientx[z][y][x];
-  grad[1] = gradienty[z][y][x];
-  grad[2] = gradientz[z][y][x];
-  h[0] = hx;
-  h[1] = hy;
+  /* Which gradient array holds which derivative is not what the names suggest.
+     The field and the gradients are allocated [depth][height][width], i.e.
+     indexed [k][i][j]; iGradY3D differentiates the middle index (i) and
+     iGradX3D the last one (j). So:
+
+         axis i -> gradienty, spacing hy, stride 1
+         axis j -> gradientx, spacing hx, stride height
+         axis k -> gradientz, spacing hz, stride height*width
+
+     which also matches how laplace3D_voxelsize pairs hx/hy/hz with the axes.
+     This used to read gradientx[k][j][i] and pair it with stride 1, so the
+     j-derivative drove motion along i and the value was sampled at the i<->j
+     mirrored voxel. Both are invisible when the volume and the geometry are
+     symmetric in i and j, which is why the sphere phantom never showed it. */
+  grad[0] = gradienty[k][i][j];
+  grad[1] = gradientx[k][i][j];
+  grad[2] = gradientz[k][i][j];
+  h[0] = hy;
+  h[1] = hx;
   h[2] = hz;
   stride[0] = 1;
-  stride[1] = width;
+  stride[1] = height;
   stride[2] = height * width;
 
   for (a = 0; a < 3; a++) {
@@ -76,7 +90,7 @@ static float yezzi_step3D(float ***gradientx, float ***gradienty, float ***gradi
   if (!strict && !reached) {
     return -1;
   }
-  return distf / (fabs(grad[0]) / hx + fabs(grad[1]) / hy + fabs(grad[2]) / hz);
+  return distf / (fabs(grad[0]) / h[0] + fabs(grad[1]) / h[1] + fabs(grad[2]) / h[2]);
 }
 
 /* Tries to hand the value at `mapindex` to each of its 6 face neighbours that
@@ -93,19 +107,19 @@ static int propagate_from3D(int mapindex, unsigned char *prot_copia, float *maps
                             float r, float tol, float hx, float hy, float hz,
                             unsigned char mark, struct index_list *next, int *overflow) {
   int neighbors[MAX_NEIGHBORS_3D_FACES];
-  int k, count, newmapindex, xr, yr, zr;
+  int n, count, newmapindex, ir, jr, kr;
   int moved = 0;
   float distf;
 
   count = neighbors3D_faces(mapindex, height, width, depth, neighbors);
-  for (k = 0; k < count; k++) {
-    newmapindex = neighbors[k];
+  for (n = 0; n < count; n++) {
+    newmapindex = neighbors[n];
     if (prot_copia[newmapindex] != 2) continue;
 
-    xr = maptox3d(newmapindex, height, width);
-    yr = maptoy3d(newmapindex, height, width);
-    zr = maptoz3d(newmapindex, height, width);
-    distf = yezzi_step3D(gradientx, gradienty, gradientz, newmapindex, xr, yr, zr,
+    ir = maptox3d(newmapindex, height, width);
+    jr = maptoy3d(newmapindex, height, width);
+    kr = maptoz3d(newmapindex, height, width);
+    distf = yezzi_step3D(gradientx, gradienty, gradientz, newmapindex, ir, jr, kr,
                          maps, height, width, sign, !relaxed, r, hx, hy, hz);
 
     if (!(distf > 0 && distf < INF)) continue;
