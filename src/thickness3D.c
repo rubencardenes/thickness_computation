@@ -276,26 +276,60 @@ static int is_band_face_adjacent(const unsigned char *input, int sum, int i, int
          (input[sum - height * width] == boundary_l);
 }
 
+/* A voxel the front never reached carries no thickness and must not be averaged
+   as one. The propagation leaves such voxels at the -1 sentinel, but callers
+   relabel -1 to 0 before writing the volume out, so by the time the statistics
+   run the sentinel is already gone -- hence the test is "not a positive, finite
+   value" rather than "not -1". A real thickness is at least one propagation
+   step, so no legitimate measurement is excluded by this. */
+static int has_thickness(float v) {
+  return isfinite(v) && v > 0;
+}
+
+/* Print how much of the measured region actually carried a thickness. A large
+   skipped count means the front stalled, which is a result worth seeing rather
+   than one to average away. */
+static void report_coverage(int npoints, int nskipped) {
+  int total = npoints + nskipped;
+  printf("npoints %d", npoints);
+  if (nskipped > 0) {
+    printf(" (WARNING: %d of %d measured voxels were never reached by the "
+           "propagation and are excluded; %.1f%% coverage)",
+           nskipped, total, total ? 100.0 * npoints / total : 0.0);
+  }
+  printf("\n");
+}
+
 /* Mean and standard deviation of the thickness map over voxels labeled
    label_cortex that are 6-adjacent to a voxel labeled boundary_l (i.e. the
    band immediately next to one boundary), excluding the outermost 1-voxel
-   shell of the volume. *std gets the standard deviation; the mean is returned. */
+   shell of the volume. *std gets the standard deviation; the mean is returned.
+
+   Voxels the front never reached are skipped and reported rather than counted
+   as zero thickness: averaging them in used to turn "the propagation failed
+   over half this surface" into "the tissue is thin", silently. On the ellipsoid
+   phantom that was the difference between a reported 4.03 and an actual 8.94. */
 float compute_mean_thickness(unsigned char *input, float *maps, int label_cortex, int boundary_l, int height, int width, int depth, float *std) {
-  int i, j, k, sum = 0, npoints = 0;
+  int i, j, k, sum = 0, npoints = 0, nskipped = 0;
   float mean = 0;
 
   for (k = 0; k < depth; k++) {
     for (j = 0; j < width; j++) {
       for (i = 0; i < height; i++) {
         if (is_band_face_adjacent(input, sum, i, j, k, height, width, depth, label_cortex, boundary_l)) {
-          mean += maps[sum];
-          npoints++;
+          if (has_thickness(maps[sum])) {
+            mean += maps[sum];
+            npoints++;
+          } else {
+            nskipped++;
+          }
         }
         sum++;
       }
     }
   }
 
+  report_coverage(npoints, nskipped);
   if (npoints == 0) {
     (*std) = 0;
     return 0;
@@ -307,7 +341,8 @@ float compute_mean_thickness(unsigned char *input, float *maps, int label_cortex
   for (k = 0; k < depth; k++) {
     for (j = 0; j < width; j++) {
       for (i = 0; i < height; i++) {
-        if (is_band_face_adjacent(input, sum, i, j, k, height, width, depth, label_cortex, boundary_l)) {
+        if (is_band_face_adjacent(input, sum, i, j, k, height, width, depth, label_cortex, boundary_l) &&
+            has_thickness(maps[sum])) {
           (*std) += (mean - maps[sum]) * (mean - maps[sum]);
         }
         sum++;
@@ -315,7 +350,6 @@ float compute_mean_thickness(unsigned char *input, float *maps, int label_cortex
     }
   }
 
-  printf("npoints %d\n", npoints);
   (*std) = (npoints > 1) ? sqrt((*std) / (npoints - 1)) : 0;
 
   return mean;
@@ -323,17 +357,23 @@ float compute_mean_thickness(unsigned char *input, float *maps, int label_cortex
 
 /* Like compute_mean_thickness, but averages over every voxel labeled
    label_cortex in the volume (no boundary-adjacency restriction, no border
-   exclusion) rather than just the band next to boundary_l. */
+   exclusion) rather than just the band next to boundary_l. Skips and reports
+   unreached voxels for the same reason. */
 float compute_mean_thickness_volume(unsigned char *input, float *maps, int label_cortex, int height, int width, int depth, float *std) {
-  int i, npoints = 0;
+  int i, npoints = 0, nskipped = 0;
   float mean = 0;
 
   for (i = 0; i < height * width * depth; i++) {
     if (input[i] == label_cortex) {
-      mean += maps[i];
-      npoints++;
+      if (has_thickness(maps[i])) {
+        mean += maps[i];
+        npoints++;
+      } else {
+        nskipped++;
+      }
     }
   }
+  report_coverage(npoints, nskipped);
   if (npoints == 0) {
     (*std) = 0;
     return 0;
@@ -342,12 +382,11 @@ float compute_mean_thickness_volume(unsigned char *input, float *maps, int label
 
   (*std) = 0;
   for (i = 0; i < height * width * depth; i++) {
-    if (input[i] == label_cortex) {
+    if (input[i] == label_cortex && has_thickness(maps[i])) {
       (*std) += (mean - maps[i]) * (mean - maps[i]);
     }
   }
 
-  printf("npoints %d\n", npoints);
   (*std) = (npoints > 1) ? sqrt((*std) / (npoints - 1)) : 0;
 
   return mean;

@@ -400,18 +400,32 @@ int thickness2Dgradient(unsigned char *prototypes, int height, int width, float 
 }
 
 /* Mean and standard deviation of the thickness over the band (pixels whose
-   input label equals label_cortex). Non-finite map values (e.g. +inf left at a
-   boundary pixel) are skipped. Returns the mean; *std gets the standard
-   deviation and *npoints the number of band pixels averaged. */
+   input label equals label_cortex). Returns the mean; *std gets the standard
+   deviation and *npoints the number of band pixels averaged.
+
+   Pixels the front never reached are skipped and reported, not averaged in:
+   they still hold the -1 sentinel when the caller has not summed the two
+   directions, and averaging that in drags the mean below zero-thickness. The
+   same test also catches the +inf a boundary pixel can be left at when the
+   gradient there is exactly zero. */
 float compute_mean_thickness2D(unsigned char *input, float *maps, int label_cortex, int height, int width, int *npoints, float *std) {
-  int i, n = 0;
+  int i, n = 0, nskipped = 0;
   float mean = 0;
 
   for (i = 0; i < height * width; i++) {
-    if (input[i] == label_cortex && isfinite(maps[i])) {
-      mean += maps[i];
-      n++;
+    if (input[i] == label_cortex) {
+      if (isfinite(maps[i]) && maps[i] > 0) {
+        mean += maps[i];
+        n++;
+      } else {
+        nskipped++;
+      }
     }
+  }
+  if (nskipped > 0) {
+    printf("WARNING: %d of %d band pixels were never reached by the propagation "
+           "and are excluded; %.1f%% coverage\n",
+           nskipped, n + nskipped, 100.0 * n / (n + nskipped));
   }
   if (n == 0) {
     *npoints = 0;
@@ -422,7 +436,7 @@ float compute_mean_thickness2D(unsigned char *input, float *maps, int label_cort
 
   *std = 0;
   for (i = 0; i < height * width; i++) {
-    if (input[i] == label_cortex && isfinite(maps[i])) {
+    if (input[i] == label_cortex && isfinite(maps[i]) && maps[i] > 0) {
       *std += (mean - maps[i]) * (mean - maps[i]);
     }
   }
